@@ -95,6 +95,27 @@ class TestBegin(unittest.TestCase):
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
 
+class TestCall(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
+
+
+class TestIf(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
+
+
+class TestInput(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
+
+
 class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
@@ -113,4 +134,23 @@ class TestPrint(unittest.TestCase):
 
     # TODO: Finish
 
-# TODO: Rest of statements
+
+class TestReturn(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
+
+
+class TestSet(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
+
+
+class TestWhile(unittest.TestCase):
+    def setUp(self) -> None:
+        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+
+    # TODO: Finish
