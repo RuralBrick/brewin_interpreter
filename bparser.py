@@ -125,6 +125,10 @@ class BParser:
         return stripped_line
 
 
+def string_to_program(str):
+    return str.split('\n')
+
+
 def main():
     brewin = '''(class main
                     (field num 0)
@@ -143,7 +147,11 @@ def main():
                             (set result (* n result))
                             (set n (- n 1))))
                         (return result))))'''
-    print(BParser.parse(brewin.split('\n')))
+    print(len("""\r\n"""))
+    print(BParser.parse(string_to_program(brewin)))
+    print(BParser.parse([r'(class main (field num 0) (field result 1) (method main () (begin (print "Enter a number: ") (inputi num) (print num " factorial is " (call me factorial num)))) (method factorial (n) (begin (set result 1) (while (> n 0) (begin (set result (* n result)) (set n (- n 1)))) (return result))))']))
+    print(string_to_program(''))
+    print(BParser.parse(['']))
 
 
 if __name__ == '__main__':
