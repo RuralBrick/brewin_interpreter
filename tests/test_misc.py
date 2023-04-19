@@ -34,7 +34,7 @@ class TestSyntax(unittest.TestCase):
     def test_a_million_parenthesis(self):
         brewin = string_to_program('''
             (class main
-                (method main () (((((((((((((((((print "main"))))))))))))))))))
+                (method main () (print (((((((((((((((("main"))))))))))))))))))
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)

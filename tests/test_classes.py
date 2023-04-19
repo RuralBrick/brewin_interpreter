@@ -73,6 +73,16 @@ class TestDefinitions(unittest.TestCase):
             error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
             self.assertEqual(error_line, 3)
+    
+    def test_main_parameter(self):
+        brewin = string_to_program('''
+            (class main
+                (method main (argv) (print "main"))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, _ = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
 
 
 class TestFields(unittest.TestCase):
