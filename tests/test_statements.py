@@ -20,3 +20,7 @@ class TestPrint(unittest.TestCase):
             error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.NAME_ERROR)
             self.assertEqual(error_line, 2)
+
+    # TODO: Finish
+
+# TODO: Rest of statements
