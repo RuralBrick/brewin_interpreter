@@ -1,4 +1,5 @@
 from intbase import InterpreterBase, ErrorType
+from bparser import BParser
 
 
 class Interpreter(InterpreterBase):
@@ -7,7 +8,10 @@ class Interpreter(InterpreterBase):
         self.trace_output = trace_output
 
     def run(self, program):
-        return super().run(program)
+        well_formed, tokens = BParser.parse(program)
+        
+        if not well_formed:
+            super().error(ErrorType.SYNTAX_ERROR, tokens)
 
 
 def main():
