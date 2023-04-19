@@ -130,28 +130,45 @@ def string_to_program(str):
 
 
 def main():
-    brewin = '''(class main
-                    (field num 0)
-                    (field result 1)
-                    (method main ()
-                        (begin
-                        (print "Enter a number: ")
-                        (inputi num)
-                        (print num " factorial is " (call me factorial num))))
+    # brewin = '''(class main
+    #                 (field num 0)
+    #                 (field result 1)
+    #                 (method main ()
+    #                     (begin
+    #                     (print "Enter a number: ")
+    #                     (inputi num)
+    #                     (print num " factorial is " (call me factorial num))))
 
-                    (method factorial (n)
-                        (begin
-                        (set result 1)
-                        (while (> n 0)
-                            (begin
-                            (set result (* n result))
-                            (set n (- n 1))))
-                        (return result))))'''
-    print(len("""\r\n"""))
-    print(BParser.parse(string_to_program(brewin)))
-    print(BParser.parse([r'(class main (field num 0) (field result 1) (method main () (begin (print "Enter a number: ") (inputi num) (print num " factorial is " (call me factorial num)))) (method factorial (n) (begin (set result 1) (while (> n 0) (begin (set result (* n result)) (set n (- n 1)))) (return result))))']))
-    print(string_to_program(''))
-    print(BParser.parse(['']))
+    #                 (method factorial (n)
+    #                     (begin
+    #                     (set result 1)
+    #                     (while (> n 0)
+    #                         (begin
+    #                         (set result (* n result))
+    #                         (set n (- n 1))))
+    #                     (return result))))'''
+    # print(len("""\r\n"""))
+    # print(BParser.parse(string_to_program(brewin)))
+    # print(BParser.parse([r'(class main (field num 0) (field result 1) (method main () (begin (print "Enter a number: ") (inputi num) (print num " factorial is " (call me factorial num)))) (method factorial (n) (begin (set result 1) (while (> n 0) (begin (set result (* n result)) (set n (- n 1)))) (return result))))']))
+    # print(string_to_program(''))
+    # print(BParser.parse(['']))
+    # brewin = string_to_program('''
+    #     (class main
+    #         (field "aslkdfj" 14)
+    #         (method main () (print "main"))
+    #     )
+    # ''')
+    # print(BParser.parse(brewin))
+    # print(BParser.parse(string_to_program('(hi((eep)bye))')))
+    # brewin = string_to_program('''
+    #     (class main
+    #         (method bird () ())
+    #         (method main () (bird))
+    #     )
+    # ''')
+    # print(BParser.parse(brewin))
+    brewin = string_to_program('''(print "ever seen 'air quotes' before?")''')
+    print(BParser.parse(brewin))
 
 
 if __name__ == '__main__':
