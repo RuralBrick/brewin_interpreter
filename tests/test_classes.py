@@ -16,8 +16,13 @@ class TestDefinitions(unittest.TestCase):
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
 
     def test_no_method(self):
-        brewin = string_to_program('(class sumn) (class main (method main () ()))')
-        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+        brewin = string_to_program('(class sumn) (class main (method main () (print "main")))')
+        
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'main')
 
     def test_out_of_order(self):
         brewin = string_to_program('''
@@ -282,3 +287,11 @@ class TestMethods(unittest.TestCase):
             error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
             self.assertEqual(error_line, 2)
+
+    def test_no_statement_body(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () ())
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)

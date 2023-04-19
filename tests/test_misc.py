@@ -38,3 +38,31 @@ class TestSyntax(unittest.TestCase):
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+    
+    def test_rogue_method(self):
+        brewin = string_to_program('''
+            (method function (x) (return (* 2 x)))
+            (class main
+                (method main () (print "main"))
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(str(output[0]), 'main')
+
+    def test_rogue_class(self):
+        brewin = string_to_program('''
+            (class main
+                (class helper (x) (return (* 2 x)))
+                (method main () (print "main"))
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(str(output[0]), 'main')
