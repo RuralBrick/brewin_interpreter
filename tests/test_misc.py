@@ -66,3 +66,33 @@ class TestSyntax(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(str(output[0]), 'main')
+
+
+class TestExamples(unittest.TestCase):
+    def test_our_first_brewin_program(self):
+        interpreter = Interpreter(False, inp=['5'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (method main ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (print num " factorial is " (call me factorial num))))
+
+                (method factorial (n)
+                    (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                    (return result))))
+        ''')
+
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output[0], 'Enter a number: ')
+        self.assertEqual(output[1], '5 factorial is 120')

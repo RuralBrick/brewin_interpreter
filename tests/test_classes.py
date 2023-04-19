@@ -84,6 +84,45 @@ class TestDefinitions(unittest.TestCase):
             error_type, _ = self.deaf_interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
 
+    def test_example(self):
+        brewin = string_to_program('''
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a)
+                    (begin
+                    (set name n)
+                    (set age a)
+                    )
+                )
+                (method talk (to_whom)
+                    (print name " says hello to " to_whom)
+                )
+            )
+
+            (class main
+                (field p null)
+                (method tell_joke (to_whom)
+                    (print "Hey " to_whom ", knock knock!")
+                )
+                (method main ()
+                    (begin
+                        (call me tell_joke "Matt") # call tell_joke in current object
+                        (set p (new person))  # allocate a new person obj, point p at it
+                        (call p init "Siddarth" 25) # call init in object pointed to by p
+                        (call p talk "Paul")       # call talk in object pointed to by p
+                    )
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'Hey Matt, knock knock!')
+        self.assertEqual(output[1], 'Siddarth says hello to Paul')
+
 
 class TestFields(unittest.TestCase):
     def setUp(self) -> None:
@@ -305,3 +344,36 @@ class TestMethods(unittest.TestCase):
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_example(self):
+        brewin = string_to_program('''
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a) (begin (set name n) (set age a)))
+                (method talk (to_whom) (print name " says hello to " to_whom))
+                (method get_age () (return age))
+            )
+
+            (class main
+                (field p null)
+                (method tell_joke (to_whom) (print "Hey " to_whom ", knock knock!"))
+                (method main ()
+                    (begin
+                        (call me tell_joke "Leia")  # calling method in the current obj
+                        (set p (new person))    
+                        (call p init "Siddarth" 25)  # calling method in other object
+                        (call p talk "Boyan")        # calling method in other object
+                        (print "Siddarth's age is " (call p get_age))
+                    )
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'Hey Leia, knock knock!')
+        self.assertEqual(output[1], 'Siddarth says hello to Boyan')
+        self.assertEqual(output[2], 'Siddarth\'s age is 25')
