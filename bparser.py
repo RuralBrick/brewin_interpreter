@@ -145,6 +145,6 @@ def main():
                         (return result))))'''
     print(BParser.parse(brewin.split('\n')))
 
+
 if __name__ == '__main__':
     main()
-
