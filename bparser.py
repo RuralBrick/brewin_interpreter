@@ -123,3 +123,28 @@ class BParser:
                 in_string = not in_string
             stripped_line += char
         return stripped_line
+
+
+def main():
+    brewin = '''(class main
+                    (field num 0)
+                    (field result 1)
+                    (method main ()
+                        (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (print num " factorial is " (call me factorial num))))
+
+                    (method factorial (n)
+                        (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                        (return result))))'''
+    print(BParser.parse(brewin.split('\n')))
+
+if __name__ == '__main__':
+    main()
+

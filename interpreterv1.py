@@ -1,5 +1,4 @@
-from bparser import *
-from intbase import *
+from intbase import InterpreterBase, ErrorType
 
 
 class Interpreter(InterpreterBase):
@@ -12,10 +11,7 @@ class Interpreter(InterpreterBase):
 
 
 def main():
-    print(BParser.parse('((())))))))))))'))
-    print(BParser.parse('((())(()()())(((())'))
-    print(BParser.parse('((())((())(()(()))))'))
-    print(StringWithLineNumber('saldjflaksdj', 28934).line_num)
+    raise NotImplementedError()
 
 if __name__ == '__main__':
     main()
