@@ -99,7 +99,110 @@ class TestCall(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    # TODO: Finish
+    def test_example(self):
+        brewin = string_to_program('''
+            (class main
+                (field other null)
+                (field result 0)
+                (method main ()
+                    (begin
+                        (call me foo 10 20)   # call foo method in same object
+                        (set other (new other_class))
+                        (call other foo 5 6)  # call foo method in other object
+                        (print "square: " (call other square 10)) # call expression
+                    )
+                )
+                (method foo (a b)
+                    (print a b)
+                )
+            )
+
+            (class other_class
+                (method foo (q r) (print q r))
+                (method square (q) (return (* q q)))
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(str(output[0]), '1020')
+        self.assertEqual(str(output[1]), '56')
+        self.assertEqual(str(output[2]), 'square: 100')
+
+    def test_no_arguments(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () (call))
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_bad_object(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () (call uhh))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 1)
+
+    def test_no_method(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () (call me))
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_bad_method(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () (call me frank))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 1)
+
+    def test_null_object(self):
+        brewin = string_to_program('''
+            (class main
+                (method main () (call null frank))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.FAULT_ERROR)
+            self.assertEqual(error_line, 1)
+
+    def test_too_many_arguments(self):
+        brewin = string_to_program('''
+            (class main
+                (method const () (return 0))
+                (method main () (print (call me const 1)))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
+            self.assertEqual(error_line, 2)
+
+    def test_too_few_arguments(self):
+        brewin = string_to_program('''
+            (class main
+                (method ignorant (not_this nor_this) (return 0))
+                (method main () (print (call me ignorant 1)))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
+            self.assertEqual(error_line, 2)
 
 
 class TestIf(unittest.TestCase):
