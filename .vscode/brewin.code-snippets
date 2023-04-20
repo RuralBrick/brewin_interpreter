@@ -62,5 +62,17 @@
 			"    "
 		],
 		"description": "Test Brewin program raises error"
+	},
+	"Run deaf_interpreter": {
+		"scope": "python",
+		"prefix": "run",
+		"body": [
+			"self.deaf_interpreter.reset()",
+			"self.deaf_interpreter.run(brewin)",
+			"output = self.deaf_interpreter.get_output()",
+			"",
+			"self.assertEqual(str(output[0]), $1)"
+		],
+		"description": "Test Brewin program raises error"
 	}
 }
