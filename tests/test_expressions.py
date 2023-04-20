@@ -233,7 +233,7 @@ class TestNew(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), '21')
+        self.assertEqual(output[0], '21')
 
     def test_unknown_class(self):
         brewin = string_to_program('''

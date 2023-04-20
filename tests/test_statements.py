@@ -127,9 +127,9 @@ class TestCall(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), '1020')
-        self.assertEqual(str(output[1]), '56')
-        self.assertEqual(str(output[2]), 'square: 100')
+        self.assertEqual(output[0], '1020')
+        self.assertEqual(output[1], '56')
+        self.assertEqual(output[2], 'square: 100')
 
     def test_no_arguments(self):
         brewin = string_to_program('''
@@ -249,7 +249,7 @@ class TestIf(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), 'None')
+        self.assertEqual(output[0], 'None')
 
     def test_int_conditional(self):
         brewin = string_to_program('''
@@ -287,7 +287,63 @@ class TestPrint(unittest.TestCase):
             self.assertIs(error_type, ErrorType.NAME_ERROR)
             self.assertEqual(error_line, 2)
 
-    # TODO: Finish
+    def test_example(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (print "here's a result " (* 3 5) " and here's a boolean" true)
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'here\'s a result 15 and here\'s a booleantrue')
+
+    def test_formatting(self):
+        brewin = string_to_program('''
+            (class main
+                (method main()
+                    (print "string" 14 true null)
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'string14trueNone')
+
+    def test_negative_number(self):
+        brewin = string_to_program('''
+            (class main
+                (method main()
+                    (print (- 0 14))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(str(output[0]), '-14')
+
+    def test_object(self):
+        brewin = string_to_program('''
+            (class main
+                (method main()
+                    (print me)
+                )
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 3)
 
 
 class TestReturn(unittest.TestCase):

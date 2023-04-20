@@ -159,7 +159,7 @@ class TestFields(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), '14')
+        self.assertEqual(output[0], '14')
 
     def test_no_initial_value(self):
         brewin = string_to_program('''
@@ -252,7 +252,7 @@ class TestMethods(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), 'None')
+        self.assertEqual(output[0], 'None')
 
     def test_get_value_from_begin_method(self):
         brewin = string_to_program('''
@@ -272,7 +272,7 @@ class TestMethods(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), 'None')
+        self.assertEqual(output[0], 'None')
 
     def test_shadowing(self):
         brewin = string_to_program('''
@@ -287,7 +287,7 @@ class TestMethods(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), '5')
+        self.assertEqual(output[0], '5')
 
     def test_duplicate(self):
         brewin = string_to_program('''

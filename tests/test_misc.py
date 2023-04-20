@@ -51,7 +51,7 @@ class TestSyntax(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), 'main')
+        self.assertEqual(output[0], 'main')
 
     def test_rogue_class(self):
         brewin = string_to_program('''
@@ -65,7 +65,7 @@ class TestSyntax(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(str(output[0]), 'main')
+        self.assertEqual(output[0], 'main')
 
 
 class TestExamples(unittest.TestCase):
