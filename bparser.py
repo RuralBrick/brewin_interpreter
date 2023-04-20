@@ -167,8 +167,9 @@ def main():
     #     )
     # ''')
     # print(BParser.parse(brewin))
-    brewin = string_to_program('''(print "ever seen 'air quotes' before?")''')
-    print(BParser.parse(brewin))
+    # brewin = string_to_program('''(print "ever seen 'air quotes' before?")''')
+    # print(BParser.parse(brewin))
+    print(BParser.parse(['(-14) (- 14) (- 14 15)']))
 
 
 if __name__ == '__main__':
