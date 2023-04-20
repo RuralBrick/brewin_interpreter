@@ -270,7 +270,7 @@ class TestInput(unittest.TestCase):
         brewin = string_to_program('''
             (class main
                 (field x 0)
-                (method main () 
+                (method main ()
                     (begin
                         (inputi x)	# input value from user, store in x variable
                         (print "the user typed in " x)
@@ -289,7 +289,7 @@ class TestInput(unittest.TestCase):
         brewin = string_to_program('''
             (class main
                 (field x 0)
-                (method main () 
+                (method main ()
                     (begin
                         (inputs x)	# input value from user, store in x variable
                         (print "the user typed in " x)
@@ -308,7 +308,7 @@ class TestInput(unittest.TestCase):
         brewin = string_to_program('''
             (class main
                 (field x 0)
-                (method main () 
+                (method main ()
                     (begin
                         (inputi x)	# input value from user, store in x variable
                         (print "the user typed in " x)
@@ -377,8 +377,8 @@ class TestPrint(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
-        self.assertEqual(str(output[0]), '-14')
+
+        self.assertEqual(output[0], '-14')
 
     def test_object(self):
         brewin = string_to_program('''
@@ -398,7 +398,71 @@ class TestReturn(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    # TODO: Finish
+    def test_example1(self):
+        brewin = string_to_program('''
+            (class main
+                (method foo (q)
+                    (return (* 3 q)))   # returns the value of 3*q
+                (method main ()
+                    (print (call me foo 5))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], '15')
+
+    def test_example2(self):
+        brewin = string_to_program('''
+            (class main
+                (method foo (q)
+                    (while (> q 0)
+                        (if (== (% q 3) 0)
+                            (return q)  # immediately terminates loop and function foo
+                            (set q (- q 1))
+                        )
+                    )
+                )
+                (method main ()
+                    (print (call me foo 5))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '3')
+
+    def test_print_empty(self):
+        brewin = string_to_program('''
+            (class main
+                (method not_really_void () (return))
+                (method main ()
+                    (print (call me not_really_void))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'None')
+
+    def test_main(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (return 14)
+                )
+            )
+        ''')
+        self.deaf_interpreter.run(brewin)
 
 
 class TestSet(unittest.TestCase):
