@@ -214,17 +214,17 @@ class TestIf(unittest.TestCase):
         brewin = string_to_program('''
             (class main
                 (field x 0)
-                (method main () 
+                (method main ()
                     (begin
                         (inputi x)	# input value from user, store in x variable
-                        (if (== 0 (% x 2)) 
+                        (if (== 0 (% x 2))
                             (print "x is even")
                             (print "x is odd")   # else clause
-                        )       
-                        (if (== x 7) 
+                        )
+                        (if (== x 7)
                             (print "lucky seven")  # no else clause in this version
-                        )  
-                        (if true (print "that's true") (print "this won't print"))    
+                        )
+                        (if true (print "that's true") (print "this won't print"))
                     )
                 )
             )
@@ -248,10 +248,10 @@ class TestIf(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(str(output[0]), 'None')
 
-    def test_partial_return(self):
+    def test_int_conditional(self):
         brewin = string_to_program('''
             (class main
                 (method f (x) (if x (return 1)))
