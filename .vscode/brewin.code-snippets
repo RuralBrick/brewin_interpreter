@@ -1,0 +1,66 @@
+{
+	// Place your Project workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"scope": "javascript,typescript",
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+	"Brewin string": {
+		"scope": "python",
+		"prefix": "brewin",
+		"body": [
+			"brewin = string_to_program('''",
+			"    $1",
+			"''')"
+		],
+		"description": "Write a Brewin program in a string"
+	},
+	"Assert RuntimeError": {
+		"scope": "python",
+		"prefix": "rare",
+		"body": [
+			"self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)"
+		],
+		"description": "Test Brewin program raises error"
+	},
+	"Assert Brewin error": {
+		"scope": "python",
+		"prefix": "bear",
+		"body": [
+			"with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):",
+			"    error_type, error_line = self.deaf_interpreter.get_error_type_and_line()",
+            "    self.assertIs(error_type, ErrorType.$1)",
+            "    self.assertEqual(error_line, $2)"
+		],
+		"description": "Test Brewin program raises error"
+	},
+	"Create TestCase with interpreter": {
+		"scope": "python",
+		"prefix": "deaf",
+		"body": [
+			"class Test$1(unittest.TestCase):",
+			"    def setUp(self) -> None:",
+			"        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)"
+		],
+		"description": "Test Brewin program raises error"
+	},
+	"Create test": {
+		"scope": "python",
+		"prefix": "test",
+		"body": [
+			"def test_$1(self):",
+			"    "
+		],
+		"description": "Test Brewin program raises error"
+	}
+}
