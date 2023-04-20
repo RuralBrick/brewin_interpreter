@@ -265,10 +265,58 @@ class TestIf(unittest.TestCase):
 
 
 class TestInput(unittest.TestCase):
-    def setUp(self) -> None:
-        self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
+    def test_example(self):
+        interpreter = Interpreter(False, inp=['14'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main () 
+                    (begin
+                        (inputi x)	# input value from user, store in x variable
+                        (print "the user typed in " x)
+                    )
+                )
+            )
+        ''')
 
-    # TODO: Finish
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output[0], 'the user typed in 14')
+
+    def test_string(self):
+        interpreter = Interpreter(False, inp=['abc'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main () 
+                    (begin
+                        (inputs x)	# input value from user, store in x variable
+                        (print "the user typed in " x)
+                    )
+                )
+            )
+        ''')
+
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output[0], 'the user typed in abc')
+
+    def test_invalid_input(self):
+        interpreter = Interpreter(False, inp=['abc'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main () 
+                    (begin
+                        (inputi x)	# input value from user, store in x variable
+                        (print "the user typed in " x)
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
 
 
 class TestPrint(unittest.TestCase):
