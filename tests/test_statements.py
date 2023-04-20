@@ -209,7 +209,59 @@ class TestIf(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    # TODO: Finish
+    def test_example(self):
+        interpreter = Interpreter(False, inp=['7'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main () 
+                    (begin
+                        (inputi x)	# input value from user, store in x variable
+                        (if (== 0 (% x 2)) 
+                            (print "x is even")
+                            (print "x is odd")   # else clause
+                        )       
+                        (if (== x 7) 
+                            (print "lucky seven")  # no else clause in this version
+                        )  
+                        (if true (print "that's true") (print "this won't print"))    
+                    )
+                )
+            )
+        ''')
+
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output[0], 'x is odd')
+        self.assertEqual(output[1], 'lucky seven')
+        self.assertEqual(output[2], 'that\'s true')
+
+    def test_partial_return(self):
+        brewin = string_to_program('''
+            (class main
+                (method f (x) (if x (return 1)))
+                (method main () (print (call me f false)))
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(str(output[0]), 'None')
+
+    def test_partial_return(self):
+        brewin = string_to_program('''
+            (class main
+                (method f (x) (if x (return 1)))
+                (method main () (print (call me f 42)))
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
+            self.assertEqual(error_line, 1)
 
 
 class TestInput(unittest.TestCase):
