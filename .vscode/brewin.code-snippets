@@ -71,7 +71,7 @@
 			"self.deaf_interpreter.run(brewin)",
 			"output = self.deaf_interpreter.get_output()",
 			"",
-			"self.assertEqual(output[0], $1)"
+			"self.assertEqual(output[0], '$1')"
 		],
 		"description": "Test Brewin program raises error"
 	}
