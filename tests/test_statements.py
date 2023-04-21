@@ -318,6 +318,16 @@ class TestInput(unittest.TestCase):
         ''')
         self.assertRaises(RuntimeError, interpreter.run, brewin)
 
+    def test_no_input(self):
+        interpreter = Interpreter(False, inp=[])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main () (inputi x))
+            )
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
 
 class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
@@ -609,4 +619,120 @@ class TestWhile(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    # TODO: Finish
+    def test_example(self):
+        interpreter = Interpreter(False, inp=['5'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while (> x 0)
+                            (begin
+                                (print "x is " x)
+                                (set x (- x 1))
+                            )
+                        )
+                    )
+                )
+            )
+        ''')
+
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output[0], 'x is 5')
+        self.assertEqual(output[1], 'x is 4')
+        self.assertEqual(output[2], 'x is 3')
+        self.assertEqual(output[3], 'x is 2')
+        self.assertEqual(output[4], 'x is 1')
+
+    def test_missing_begin(self):
+        interpreter = Interpreter(False, inp=['5'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while (> x 0)
+                            (set x (- x 1))
+                            (print "x is " x)
+                        )
+                    )
+                )
+            )
+        ''')
+        interpreter.run(brewin)
+        self.assertEqual(interpreter.get_output(), [])
+
+    def test_bad_condition(self):
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while 1
+                            (begin
+                                (print "x is " x)
+                                (set x (- x 1))
+                            )
+                        )
+                    )
+                )
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
+            self.assertEqual(error_line, 6)
+
+    def test_no_condition(self):
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while
+                            (begin
+                                (print "x is " x)
+                                (set x (- x 1))
+                            )
+                        )
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_no_statement(self):
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while (> x 0)
+                        )
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_no_arguments(self):
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi x)
+                        (while
+                        )
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
