@@ -435,7 +435,7 @@ class TestReturn(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '3')
 
     def test_print_empty(self):
@@ -469,7 +469,140 @@ class TestSet(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    # TODO: Finish
+    def test_example(self):
+        brewin = string_to_program('''
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a) (begin (set name n) (set age a)))
+                (method talk (to_whom) (print name " says hello to " to_whom))
+            )
+
+            (class main
+                (field x 0)
+                (method foo (q)
+                    (begin
+                        (set x 10)	 		# setting field to integer constant
+                        (print x)
+                        (set q true)			# setting parameter to boolean constant
+                        (print q)
+                        (set x (* x 5))		# setting field to result of expression
+                        (print x)
+                        (set x "foobar")		# setting field to a string constant
+                        (print x)
+                        (set x (new person))	# setting field to refer to new object
+                        (set x null)			# setting field to null
+                    )
+                )
+                (method main ()
+                    (call me foo 5)
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], '10')
+        self.assertEqual(output[1], 'true')
+        self.assertEqual(output[2], '50')
+        self.assertEqual(output[3], 'foobar')
+
+    def test_me(self):
+        brewin = string_to_program('''
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a) (begin (set name n) (set age a)))
+                (method talk (to_whom) (print name " says hello to " to_whom))
+            )
+
+            (class main
+                (field x 0)
+                (method foo (q)
+                    (begin
+                        (set me (new person))
+                        (call me init "hi" 23)
+                        (call me talk "bye")
+                    )
+                )
+                (method main ()
+                    (call me foo 5)
+                )
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 11)
+
+    def test_unknown_variable(self):
+        brewin = string_to_program('''
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a) (begin (set name n) (set age a)))
+                (method talk (to_whom) (print name " says hello to " to_whom))
+            )
+
+            (class main
+                (field x 0)
+                (method foo (q)
+                    (begin
+                        (set y 1)
+                    )
+                )
+                (method main ()
+                    (call me foo 5)
+                )
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 11)
+
+    def test_void(self):
+        brewin = string_to_program('''
+            (class main
+                (field a 0)
+                (method foo () (print "hello world")) # does not return a value
+                (method main ()
+                    (set a (call me foo)) # MUST generate a TYPE_ERROR
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'hello world')
+
+    def test_no_arguments(self):
+        brewin = string_to_program('''
+            (class main
+                (field a 0)
+                (method foo () (print "hello world")) # does not return a value
+                (method main ()
+                    (set)
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_no_value(self):
+        brewin = string_to_program('''
+            (class main
+                (field a 0)
+                (method foo () (print "hello world")) # does not return a value
+                (method main ()
+                    (set a)
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
 
 class TestWhile(unittest.TestCase):
