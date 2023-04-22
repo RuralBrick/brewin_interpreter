@@ -63,7 +63,11 @@ class TestBegin(unittest.TestCase):
                 )
             )
         ''')
+
+        self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
+
+        self.assertEqual(self.deaf_interpreter.get_output(), [])
 
     def test_no_statement_body(self):
         brewin = string_to_program('''
@@ -472,7 +476,11 @@ class TestReturn(unittest.TestCase):
                 )
             )
         ''')
+
+        self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
+
+        self.assertEqual(self.deaf_interpreter.get_output(), [])
 
 
 class TestSet(unittest.TestCase):
