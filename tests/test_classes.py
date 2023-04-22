@@ -17,7 +17,7 @@ class TestDefinitions(unittest.TestCase):
 
     def test_no_method(self):
         brewin = string_to_program('(class sumn) (class main (method main () (print "main")))')
-        
+
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
@@ -73,7 +73,7 @@ class TestDefinitions(unittest.TestCase):
             error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
             self.assertEqual(error_line, 3)
-    
+
     def test_main_parameter(self):
         brewin = string_to_program('''
             (class main
@@ -361,7 +361,7 @@ class TestMethods(unittest.TestCase):
                 (method main ()
                     (begin
                         (call me tell_joke "Leia")  # calling method in the current obj
-                        (set p (new person))    
+                        (set p (new person))
                         (call p init "Siddarth" 25)  # calling method in other object
                         (call p talk "Boyan")        # calling method in other object
                         (print "Siddarth's age is " (call p get_age))

@@ -38,7 +38,7 @@ class TestSyntax(unittest.TestCase):
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-    
+
     def test_rogue_method(self):
         brewin = string_to_program('''
             (method function (x) (return (* 2 x)))

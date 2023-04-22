@@ -8,7 +8,7 @@ class TestImport(unittest.TestCase):
     def test_new(self):
         interpreter = Interpreter()
         self.assertIsInstance(interpreter, InterpreterBase)
-    
+
     def test_parser(self):
         status, msg = BParser.parse('((())))))))))))')
         self.assertFalse(status)
