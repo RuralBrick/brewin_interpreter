@@ -68,6 +68,36 @@ class TestSyntax(unittest.TestCase):
         self.assertEqual(output[0], 'main')
 
 
+class TestSemantics(unittest.TestCase):
+    def test_field_and_method_with_same_name(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (field main 0)
+                (field result 1)
+                (method main ()
+                    (begin
+                    (print "Enter a number: ")
+                    (inputi main)
+                    (print main " factorial is " (call me factorial main))))
+
+                (method factorial (n)
+                    (begin
+                    (set result 1)
+                    (while (> n 0)
+                        (begin
+                        (set result (* n result))
+                        (set n (- n 1))))
+                    (return result))))
+        ''')
+
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+        
+        self.assertEqual(output[0], 'Enter a number: ')
+        self.assertEqual(output[1], '4 factorial is 24')
+
+
 class TestExamples(unittest.TestCase):
     def test_our_first_brewin_program(self):
         interpreter = Interpreter(False, inp=['5'])
