@@ -10,6 +10,9 @@ ErrorFun = Callable[[ErrorType, str, int], None]
 
 
 class Ingredient:
+    """
+    Field definition
+    """
     def __init__(self, value: SWLN, error: ErrorFun) -> None:
         self.error = error
 
@@ -91,6 +94,9 @@ def evaluate_statement(statement, scope: dict[SWLN, Ingredient],
 
 
 class Instruction:
+    """
+    Method definition
+    """
     def __init__(self, name: SWLN, params: list[SWLN], statement: list,
                  scope: dict[SWLN, Ingredient], output: OutputFun,
                  error: ErrorFun) -> None:
@@ -121,6 +127,9 @@ class Instruction:
 
 
 class Recipe:
+    """
+    Class definition
+    """
     def __init__(self, name: SWLN, body: list, output: OutputFun,
                  error: ErrorFun) -> None:
         self.name = name
@@ -157,6 +166,9 @@ class Recipe:
 
 
 class Barista(InterpreterBase):
+    """
+    Interpreter
+    """
     def __init__(self, console_output=True, inp=None, trace_output=False):
         super().__init__(console_output, inp)
         self.trace_output = trace_output
