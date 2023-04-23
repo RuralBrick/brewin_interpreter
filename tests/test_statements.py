@@ -208,6 +208,132 @@ class TestCall(unittest.TestCase):
             self.assertIs(error_type, ErrorType.TYPE_ERROR)
             self.assertEqual(error_line, 2)
 
+    def test_multiline_too_few_arguments(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (field waagabaaga null)
+                (method
+                main
+                ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (set waagabaaga (new main))
+                        (print num " factorial is " (call
+                        waagabaaga
+                        factorial
+                        num))))
+
+                (method
+                factorial
+                (n m)
+                    (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                                (set result (* n result))
+                                (set n (- n 1))))
+                        (return result))))
+        ''')
+        with self.assertRaises(RuntimeError, interpreter.run, brewin):
+            error_type, error_line = interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.TYPE_ERROR)
+            self.assertEqual(error_line, 11)
+
+    def test_multiline_bad_method(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (method
+                main
+                ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (print num " factorial is " (call
+                        me
+                        carl
+                        num))))
+
+                (method
+                factorial
+                (n m)
+                    (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                        (return result))))
+        ''')
+        with self.assertRaises(RuntimeError, interpreter.run, brewin):
+            error_type, error_line = interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 9)
+
+    def test_multiline_bad_object(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (method
+                main
+                ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (print num " factorial is " (call
+                        carl
+                        factorial
+                        num))))
+
+                (method
+                factorial
+                (n m)
+                    (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                        (return result))))
+        ''')
+        with self.assertRaises(RuntimeError, interpreter.run, brewin):
+            error_type, error_line = interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 9)
+
+    def test_primitive_as_object(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (field waagabaaga null)
+                (method main ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (set waagabaaga (new main))
+                        (print num " factorial is " (call result factorial num))))
+
+                (method factorial (n)
+                    (begin
+                        (set result 1)
+                        (while (> n 0)
+                            (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                        (return result))))
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
 
 class TestIf(unittest.TestCase):
     def setUp(self) -> None:
