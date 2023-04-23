@@ -208,7 +208,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       f"{method}",
                       method.line_num)
             try:
-                return signature_brew.call(
+                result = signature_brew.call(
                     (evaluate_expression(argument, me, classes, scope, error)
                     for argument in arguments), classes=classes
                 )
@@ -217,6 +217,13 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       f"Method called with wrong number of arguments: {obj}."
                       f"{method}",
                       expression[0].line_num)
+            if result == None:
+                error(ErrorType.TYPE_ERROR,
+                      f"Statement did not return a value: "
+                      f"{InterpreterBase.ME_DEF}.{method}",
+                      expression[0].line_num)
+            else:
+                return result
         case [InterpreterBase.CALL_DEF, obj, method, *arguments] \
                 if isSWLN(obj) and isSWLN(method):
             try:
@@ -238,7 +245,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR, f"Not an object: {obj}",
                       obj.line_num)
             try:
-                return brew.call(
+                result = brew.call(
                     (evaluate_expression(argument, me, classes, scope, error)
                     for argument in arguments), classes=classes
                 )
@@ -247,6 +254,12 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       f"Method called with wrong number of arguments: {obj}."
                       f"{method}",
                       expression[0].line_num)
+            if result == None:
+                error(ErrorType.TYPE_ERROR,
+                      f"Statement did not return a value: {obj}.{method}",
+                      expression[0].line_num)
+            else:
+                return result
         case [InterpreterBase.NEW_DEF, name] if isSWLN(name):
             try:
                 cuppa = classes[name]
