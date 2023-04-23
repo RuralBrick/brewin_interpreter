@@ -34,6 +34,12 @@ class Ingredient:
                                value.line_num)
 
     def __repr__(self) -> str:
+        match self.value:
+            case True:
+                return InterpreterBase.TRUE_DEF
+            case False:
+                return InterpreterBase.FALSE_DEF
+            # NOTE: Maybe add None |-> null case
         return str(self.value)
 
 
