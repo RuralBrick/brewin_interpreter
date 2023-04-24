@@ -24,6 +24,9 @@ class StringWithLineNumber(str):
     def __deepcopy__(self, _memo):
         return StringWithLineNumber(self, self.line_num)
 
+    def __repr__(self) -> str:
+        return f"({self}, {self.line_num})"
+
 
 class BParser:
     """

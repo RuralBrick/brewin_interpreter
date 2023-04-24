@@ -1,5 +1,6 @@
 import unittest
 
+from settings import PURPOSELY_DIFFERENT
 from bparser import string_to_program
 from intbase import ErrorType
 from interpreterv1 import Interpreter
@@ -39,6 +40,7 @@ class TestSyntax(unittest.TestCase):
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_rogue_method(self):
         brewin = string_to_program('''
             (method function (x) (return (* 2 x)))
@@ -53,6 +55,7 @@ class TestSyntax(unittest.TestCase):
 
         self.assertEqual(output[0], 'main')
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_rogue_class(self):
         brewin = string_to_program('''
             (class main
