@@ -10,8 +10,12 @@ from bparser import BParser, StringWithLineNumber as SWLN
 InputFun = Callable[[], str]
 OutputFun = Callable[[str], None]
 ErrorFun = Callable[[ErrorType, str, int], None]
+BrewinTypes = SWLN | int | str | bool | Recipe | None
 isSWLN = lambda token: isinstance(token, SWLN)
 debug = lambda *values: print(*values, file=sys.stderr, flush=True)
+
+
+Interpreter = Barista
 
 
 class Barista(InterpreterBase):
@@ -87,9 +91,6 @@ class Barista(InterpreterBase):
                           "Main method cannot accept arguments")
 
 
-Interpreter = Barista
-
-
 class Recipe:
     """
     Class definition
@@ -121,7 +122,7 @@ class Recipe:
         tea = Recipe(self.name, [], self.get_input, self.output, self.error,
                      self.trace_output)
         for variety, leaf in self.fields.items():
-            tea.fields[variety] = leaf
+            tea.add_field(variety, leaf)
         for steep in self.methods.values():
             tea.add_method(steep.name, steep.formals, steep.statement)
         return tea
@@ -129,7 +130,7 @@ class Recipe:
     def __str__(self) -> str:
         return f'<class {self.name}>'
 
-    def add_field(self, name: SWLN, value: SWLN):
+    def add_field(self, name: SWLN, value: BrewinTypes):
         if name in self.fields:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate fields in {self.name}: {name}",
@@ -151,8 +152,8 @@ class Ingredient:
     """
     Field definition
     """
-    def __init__(self, value: SWLN | int | str | bool | Recipe | None,
-                 error: ErrorFun, trace_output: bool) -> None:
+    def __init__(self, value: BrewinTypes, error: ErrorFun,
+                 trace_output: bool) -> None:
         self.error = error
         self.trace_output = trace_output
 
@@ -227,13 +228,19 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         scope: dict[SWLN, Ingredient],
                         error: ErrorFun, trace_output: bool) -> Ingredient:
     if trace_output:
-        try:
-            debug(f"line {expression[0].line_num}: Expression starts with "
-                  f"{expression[0]}")
-        except IndexError:
-            debug("Empty expression")
-        except AttributeError:
-            debug(f"no line_num: Expression starts with {expression[0]}")
+        if type(expression) == list:
+            try:
+                debug(f"line {expression[0].line_num}: Expression starts with "
+                    f"{expression[0]}")
+            except IndexError:
+                debug("Empty expression")
+            except AttributeError:
+                debug(f"no line_num: Expression starts with {expression[0]}")
+        else:
+            try:
+                debug(f"line {expression.line_num}: Expression is {expression}")
+            except AttributeError:
+                debug(f"no line_num: Expression is {expression}")
     match expression:
         case variable if isSWLN(variable) and variable in parameters:
             return parameters[variable]
