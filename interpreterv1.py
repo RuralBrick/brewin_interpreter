@@ -18,7 +18,7 @@ class Barista(InterpreterBase):
     def __init__(self, console_output=True, inp=None, trace_output=False):
         super().__init__(console_output, inp)
         self.trace_output = trace_output
-        self.input = super().get_input
+        self.get_input = super().get_input
         self.output = super().output
         self.error = super().error
 
@@ -28,7 +28,7 @@ class Barista(InterpreterBase):
     def add_class(self, name: SWLN, body: list):
         if name in self.classes:
             self.error(ErrorType.NAME_ERROR, f"Duplicate classes: {name}")
-        self.classes[name] = Recipe(name, body, self.input, self.output,
+        self.classes[name] = Recipe(name, body, self.get_input, self.output,
                                     self.error)
 
     def run(self, program: list[str]):
@@ -43,17 +43,9 @@ class Barista(InterpreterBase):
             match class_def:
                 case [InterpreterBase.CLASS_DEF, name, *body] if isSWLN(name):
                     self.add_class(name, body)
-                case bad:
-                    self.error(ErrorType.SYNTAX_ERROR, f"Not a class: {bad}")
-
-        # HACK
-        from sys import stderr
-        from pprint import pprint
-        for item, cup in self.classes.items():
-            print(item, file=stderr, flush=True)
-            pprint(cup.fields, stderr)
-            pprint(cup.methods, stderr)
-        # end HACK
+                case _:
+                    self.error(ErrorType.SYNTAX_ERROR,
+                               f"Not a class: {class_def}")
 
         try:
             cup_of_the_day = self.classes[InterpreterBase.MAIN_CLASS_DEF]
@@ -81,10 +73,10 @@ class Recipe:
     """
     Class definition
     """
-    def __init__(self, name: SWLN, body: list, input: InputFun,
+    def __init__(self, name: SWLN, body: list, get_input: InputFun,
                  output: OutputFun, error: ErrorFun) -> None:
         self.name = name
-        self.input = input
+        self.get_input = get_input
         self.output = output
         self.error = error
         self.fields: dict[SWLN, Ingredient] = {}
@@ -98,9 +90,9 @@ class Recipe:
                 case [InterpreterBase.METHOD_DEF, name, list(params),
                       statement] if isSWLN(name) and all(map(isSWLN, params)):
                     self.add_method(name, params, statement)
-                case bad:
+                case _:
                     self.error(ErrorType.SYNTAX_ERROR,
-                               f"Not a field or method: {bad}")
+                               f"Not a field or method: {definition}")
 
     def add_field(self, name: SWLN, value: SWLN):
         if name in self.fields:
@@ -115,8 +107,8 @@ class Recipe:
                        f"Duplicate methods in {self.name}: {name}",
                        name.line_num)
         self.methods[name] = Instruction(name, params, statement, self,
-                                         self.fields, self.input, self.output,
-                                         self.error)
+                                         self.fields, self.get_input,
+                                         self.output, self.error)
 
 
 class Ingredient:
@@ -129,8 +121,6 @@ class Ingredient:
 
         match value:
             case value if not isSWLN(value):
-                from sys import stderr
-                print(f"Raw value to Ingredient: {value}", file=stderr, flush=True)
                 self.value = value
             case InterpreterBase.NULL_DEF:
                 self.value = None
@@ -167,14 +157,14 @@ class Instruction:
     Method definition
     """
     def __init__(self, name: SWLN, params: list[SWLN], statement: list,
-                 me: Recipe, scope: dict[SWLN, Ingredient], input: InputFun,
+                 me: Recipe, scope: dict[SWLN, Ingredient], get_input: InputFun,
                  output: OutputFun, error: ErrorFun) -> None:
         self.name = name
         self.formals = params
         self.statement = statement
         self.me = me
         self.scope = scope
-        self.input = input
+        self.get_input = get_input
         self.output = output
         self.error = error
 
@@ -190,7 +180,7 @@ class Instruction:
                       in zip(self.formals, args, strict=True)}
 
         return evaluate_statement(self.statement, self.me, classes, parameters,
-                                  self.scope, self.input, self.output,
+                                  self.scope, self.get_input, self.output,
                                   self.error)
 
 
@@ -205,13 +195,6 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             return scope[variable]
         case const if isSWLN(const):
             return Ingredient(const, error)
-        case [unary_operator, expression] if isSWLN(unary_operator):
-            # TODO
-            pass
-        case [binary_operator, left_expression, right_expression] \
-                if isSWLN(binary_operator):
-            # TODO
-            pass
         case [InterpreterBase.CALL_DEF, InterpreterBase.ME_DEF, method,
               *arguments] if isSWLN(method):
             try:
@@ -223,9 +206,9 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       method.line_num)
             try:
                 result = signature_brew.call(
-                    (evaluate_expression(argument, me, classes, parameters,
+                    *(evaluate_expression(argument, me, classes, parameters,
                                          scope, error)
-                     for argument in arguments),
+                      for argument in arguments),
                     classes=classes
                 )
             except ValueError:
@@ -262,10 +245,10 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       obj.line_num)
             try:
                 result = brew.call(
-                    (evaluate_expression(argument, me, classes, parameters,
+                    *(evaluate_expression(argument, me, classes, parameters,
                                          scope, error)
-                     for argument in arguments),
-                     classes=classes
+                      for argument in arguments),
+                    classes=classes
                 )
             except ValueError:
                 error(ErrorType.TYPE_ERROR,
@@ -285,29 +268,68 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR, f"Could not find class: {name}",
                       expression[0].line_num)
             return Ingredient(copy.deepcopy(cuppa), error)
-        case list(expr):
-            # TODO: Rest of expressions
-            from sys import stderr
-            print(f"Found expression: {expr}", file=stderr, flush=True)
-            return Ingredient(None, error)
-        case bad:
-            error(ErrorType.SYNTAX_ERROR, f"Not a valid expression: {bad}")
+        case [unary_operator, expression] if isSWLN(unary_operator):
+            beans = evaluate_expression(expression, me, classes, parameters,
+                                        scope, error).value
+            match unary_operator:
+                case '!' if type(beans) == bool:
+                    roast = not beans
+                case _:
+                    error(ErrorType.TYPE_ERROR,
+                        f"No use of {unary_operator} is compatible with "
+                        f"expression type: {type(beans)}",
+                        unary_operator.line_num)
+            return Ingredient(roast, error)
+        case [binary_operator, left_expression, right_expression]:
+            beans = evaluate_expression(left_expression, me, classes,
+                                        parameters, scope, error).value
+            cream = evaluate_expression(right_expression, me, classes,
+                                        parameters, scope, error).value
+            match binary_operator:
+                # NOTE: `eval` only used after operator becomes known to prevent
+                #       arbitrary code execution
+                case '+'|'-'|'*'|'/'|'%'|'<'|'>'|'<='|'>='|'!='|'==' \
+                        if type(beans) == type(cream) == int:
+                    operator = eval(
+                        f'lambda left, right: left {binary_operator} right'
+                    )
+                    blend = operator(beans, cream)
+                case '+'|'=='|'!='|'<'|'>'|'<='|'>=' \
+                        if type(beans) == type(cream) == str:
+                    operator = eval(
+                        f'lambda left, right: left {binary_operator} right'
+                    )
+                    blend = operator(beans, cream)
+                case '!='|'=='|'&'|'|' if type(beans) == type(cream) == bool:
+                    operator = eval(
+                        f'lambda left, right: left {binary_operator} right'
+                    )
+                    blend = operator(beans, cream)
+                case _:
+                    error(ErrorType.TYPE_ERROR,
+                        f"No use of {binary_operator} is compatible with "
+                        f"expression types: {type(beans)}, {type(cream)}",
+                        binary_operator.line_num)
+            return Ingredient(blend, error)
+        case _:
+            error(ErrorType.SYNTAX_ERROR,
+                  f"Not a valid expression: {expression}")
 
 
 def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                        parameters: dict[SWLN, Ingredient],
-                       scope: dict[SWLN, Ingredient], input: InputFun,
+                       scope: dict[SWLN, Ingredient], get_input: InputFun,
                        output: OutputFun, error: ErrorFun) -> None | Ingredient:
     match statement:
         case [InterpreterBase.BEGIN_DEF, sub_statement1, *sub_statements]:
             last_return = evaluate_statement(sub_statement1, me, classes,
-                                             parameters, scope, input, output,
-                                             error)
+                                             parameters, scope, get_input,
+                                             output, error)
             if last_return != None:
                 return last_return
             for sub_statement in sub_statements:
                 last_return = evaluate_statement(sub_statement, me, classes,
-                                                 parameters, scope, input,
+                                                 parameters, scope, get_input,
                                                  output, error)
                 if last_return != None:
                     return last_return
@@ -323,9 +345,9 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       method.line_num)
             try:
                 return signature_brew.call(
-                    (evaluate_expression(argument, me, classes, parameters,
+                    *(evaluate_expression(argument, me, classes, parameters,
                                          scope, error)
-                     for argument in arguments),
+                      for argument in arguments),
                     classes=classes
                 )
             except ValueError:
@@ -355,9 +377,9 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       obj.line_num)
             try:
                 return brew.call(
-                    (evaluate_expression(argument, me, classes, parameters,
+                    *(evaluate_expression(argument, me, classes, parameters,
                                          scope, error)
-                     for argument in arguments),
+                      for argument in arguments),
                     classes=classes
                 )
             except ValueError:
@@ -374,7 +396,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       statement[0].line_num)
             if condition:
                 return evaluate_statement(true_statement, me, classes,
-                                          parameters, scope, input, output,
+                                          parameters, scope, get_input, output,
                                           error)
         case [InterpreterBase.IF_DEF, expression, true_statement,
               false_statement]:
@@ -386,25 +408,25 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       statement[0].line_num)
             if condition:
                 return evaluate_statement(true_statement, me, classes,
-                                          parameters, scope, input, output,
+                                          parameters, scope, get_input, output,
                                           error)
             else:
                 return evaluate_statement(false_statement, me, classes,
-                                          parameters, scope, input, output,
+                                          parameters, scope, get_input, output,
                                           error)
         case [InterpreterBase.INPUT_INT_DEF, variable] if isSWLN(variable):
             if variable in parameters:
-                parameters[variable] = Ingredient(int(input()), error)
+                parameters[variable] = Ingredient(int(get_input()), error)
             elif variable in scope:
-                scope[variable] = Ingredient(int(input()), error)
+                scope[variable] = Ingredient(int(get_input()), error)
             else:
                 error(ErrorType.NAME_ERROR, f"Variable not found: {variable}",
                       variable.line_num)
         case [InterpreterBase.INPUT_STRING_DEF, variable] if isSWLN(variable):
             if variable in parameters:
-                parameters[variable] = Ingredient(input(), error)
+                parameters[variable] = Ingredient(str(get_input()), error)
             elif variable in scope:
-                scope[variable] = Ingredient(input(), error)
+                scope[variable] = Ingredient(str(get_input()), error)
             else:
                 error(ErrorType.NAME_ERROR, f"Variable not found: {variable}",
                       variable.line_num)
@@ -446,47 +468,46 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                 if not condition:
                     break
                 last_return = evaluate_statement(statement_to_run, me, classes,
-                                                 parameters, scope, input,
+                                                 parameters, scope, get_input,
                                                  output, error)
                 if last_return != None:
                     return last_return
-        case bad:
-            error(ErrorType.SYNTAX_ERROR, f"Not a valid statement: {bad}")
+        case _:
+            error(ErrorType.SYNTAX_ERROR, f"Not a valid statement: {statement}")
 
 
 def main():
     interpreter = Interpreter()
     script = '''
-        (class main
-            (field num 0)
-            (field result 1)
-            (method main ()
-                (begin
-                (print "Enter a number: ")
-                (inputi num)
-                (print num " factorial is " (call me factorial num))))
-
-            (method factorial (n)
-                (begin
-                (set result 1)
-                (while (> n 0)
+            (class person
+                (field name "")
+                (field age 0)
+                (method init (n a)
                     (begin
-                    (set result (* n result))
-                    (set n (- n 1))))
-                (return result))))
+                    (set name n)
+                    (set age a)
+                    )
+                )
+                (method talk (to_whom)
+                    (print name " says hello to " to_whom)
+                )
+            )
+
+            (class main
+                (field p null)
+                (method tell_joke (to_whom)
+                    (print "Hey " to_whom ", knock knock!")
+                )
+                (method main ()
+                    (begin
+                        (call me tell_joke "Matt") # call tell_joke in current object
+                        (set p (new person))  # allocate a new person obj, point p at it
+                        (call p init "Siddarth" 25) # call init in object pointed to by p
+                        (call p talk "Paul")       # call talk in object pointed to by p
+                    )
+                )
+            )
     '''
-    # script = '''
-    #     (class main
-    #         (field name "")
-    #         (method main ()
-    #             (begin
-    #                 (print "Who are you?")
-    #                 (inputs name)
-    #                 (print "Hello " name "!")
-    #             )
-    #         )
-    #     )
-    # '''
     interpreter.run(script.splitlines())
 
 

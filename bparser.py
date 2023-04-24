@@ -126,7 +126,7 @@ class BParser:
 
 
 def string_to_program(str):
-    return str.split('\n')
+    return str.splitlines()
 
 
 def main():

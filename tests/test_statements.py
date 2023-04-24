@@ -471,8 +471,8 @@ class TestInput(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        with self.assertRaises(RuntimeError, interpreter.run, brewin):
+            error_type, error_line = interpreter.get_error_type_and_line()
             self.assertIs(error_type, ErrorType.NAME_ERROR)
             self.assertEqual(error_line, 4)
 
