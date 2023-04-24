@@ -458,6 +458,24 @@ class TestInput(unittest.TestCase):
         ''')
         self.assertRaises(RuntimeError, interpreter.run, brewin)
 
+    def test_bad_variable(self):
+        interpreter = Interpreter(False, inp=['14'])
+        brewin = string_to_program('''
+            (class main
+                (field x 0)
+                (method main ()
+                    (begin
+                        (inputi y)	# input value from user, store in x variable
+                        (print "the user typed in " x)
+                    )
+                )
+            )
+        ''')
+        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
+            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+            self.assertIs(error_type, ErrorType.NAME_ERROR)
+            self.assertEqual(error_line, 4)
+
 
 class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
@@ -870,3 +888,26 @@ class TestWhile(unittest.TestCase):
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+    def test_non_bool_condition(self):
+        interpreter = Interpreter(False, inp=['5'])
+        brewin = string_to_program('''
+            (class main
+                (field num 0)
+                (field result 1)
+                (method main ()
+                    (begin
+                        (print "Enter a number: ")
+                        (inputi num)
+                        (print num " factorial is " (call me factorial num))))
+
+                (method factorial (n)
+                    (begin
+                    (set result 1)
+                    (while (+ "n" "0")
+                        (begin
+                            (set result (* n result))
+                            (set n (- n 1))))
+                        (return result))))
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
