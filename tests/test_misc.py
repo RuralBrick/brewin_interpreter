@@ -17,10 +17,12 @@ class TestSyntax(unittest.TestCase):
                 (method main () (bird))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.SYNTAX_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.SYNTAX_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_get_value_from_bad_statement(self):
         brewin = string_to_program('''
@@ -96,10 +98,10 @@ class TestSemantics(unittest.TestCase):
 
         interpreter.run(brewin)
         output = interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'Enter a number: ')
         self.assertEqual(output[1], '4 factorial is 24')
-    
+
     def test_me_field(self):
         interpreter = Interpreter(False, inp=['4'])
         brewin = string_to_program('''
@@ -131,7 +133,7 @@ class TestSemantics(unittest.TestCase):
 
         interpreter.run(brewin)
         output = interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'Enter a number: ')
         self.assertEqual(output[1], '4 factorial is 24')
 

@@ -145,16 +145,19 @@ class TestCall(unittest.TestCase):
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_bad_object(self):
         brewin = string_to_program('''
             (class main
                 (method main () (call uhh))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 1)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_no_method(self):
         brewin = string_to_program('''
@@ -170,10 +173,12 @@ class TestCall(unittest.TestCase):
                 (method main () (call me frank))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 1)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_null_object(self):
         brewin = string_to_program('''
@@ -181,10 +186,26 @@ class TestCall(unittest.TestCase):
                 (method main () (call null frank))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.FAULT_ERROR)
-            self.assertEqual(error_line, 1)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.FAULT_ERROR)
+        self.assertEqual(error_line, 2)
+
+    def test_null_object2(self):
+        brewin = string_to_program('''
+            (class main
+                (field blank null)
+                (method main () (call blank frank))
+            )
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.FAULT_ERROR)
+        self.assertEqual(error_line, 3)
 
     def test_too_many_arguments(self):
         brewin = string_to_program('''
@@ -193,10 +214,12 @@ class TestCall(unittest.TestCase):
                 (method main () (print (call me const 1)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 3)
 
     def test_too_few_arguments(self):
         brewin = string_to_program('''
@@ -205,10 +228,12 @@ class TestCall(unittest.TestCase):
                 (method main () (print (call me ignorant 1)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 3)
 
     def test_multiline_too_few_arguments(self):
         interpreter = Interpreter(False, inp=['4'])
@@ -240,11 +265,14 @@ class TestCall(unittest.TestCase):
                                 (set n (- n 1))))
                         (return result))))
         ''')
-        with self.assertRaises(RuntimeError, interpreter.run, brewin):
-            error_type, error_line = interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 11)
 
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+        error_type, error_line = interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 12)
+
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_multiline_bad_method(self):
         interpreter = Interpreter(False, inp=['4'])
         brewin = string_to_program('''
@@ -273,11 +301,14 @@ class TestCall(unittest.TestCase):
                             (set n (- n 1))))
                         (return result))))
         ''')
-        with self.assertRaises(RuntimeError, interpreter.run, brewin):
-            error_type, error_line = interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 9)
 
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+        error_type, error_line = interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 10)
+
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_multiline_bad_object(self):
         interpreter = Interpreter(False, inp=['4'])
         brewin = string_to_program('''
@@ -306,10 +337,12 @@ class TestCall(unittest.TestCase):
                             (set n (- n 1))))
                         (return result))))
         ''')
-        with self.assertRaises(RuntimeError, interpreter.run, brewin):
-            error_type, error_line = interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 9)
+
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+        error_type, error_line = interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 10)
 
     def test_primitive_as_object(self):
         interpreter = Interpreter(False, inp=['4'])
@@ -391,10 +424,12 @@ class TestIf(unittest.TestCase):
                 (method main () (print (call me f 42)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 1)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
 
 class TestInput(unittest.TestCase):
@@ -475,16 +510,19 @@ class TestInput(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, interpreter.run, brewin):
-            error_type, error_line = interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 4)
+
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+        error_type, error_line = interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 5)
 
 
 class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_expression_missing_parenthesis(self):
         brewin = string_to_program('''
             (class main
@@ -492,10 +530,12 @@ class TestPrint(unittest.TestCase):
                 (method main () (print * 3 5))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 3)
 
     def test_example(self):
         brewin = string_to_program('''
@@ -551,10 +591,12 @@ class TestPrint(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 3)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 3)
 
 
 class TestReturn(unittest.TestCase):
@@ -700,10 +742,12 @@ class TestSet(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 11)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 12)
 
     def test_unknown_variable(self):
         brewin = string_to_program('''
@@ -726,10 +770,12 @@ class TestSet(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 11)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 12)
 
     @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_void(self):
@@ -844,10 +890,12 @@ class TestWhile(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, interpreter.run, brewin):
-            error_type, error_line = interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 6)
+
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+        error_type, error_line = interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 6)
 
     def test_no_condition(self):
         interpreter = Interpreter(False, inp=['14'])

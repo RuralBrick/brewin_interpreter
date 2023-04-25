@@ -37,10 +37,11 @@
 		"scope": "python",
 		"prefix": "bear",
 		"body": [
-			"with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):",
-			"    error_type, error_line = self.deaf_interpreter.get_error_type_and_line()",
-            "    self.assertIs(error_type, ErrorType.$1)",
-            "    self.assertEqual(error_line, $2)"
+			"self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)",
+			"",
+			"error_type, error_line = self.deaf_interpreter.get_error_type_and_line()",
+            "self.assertIs(error_type, ErrorType.$1)",
+            "self.assertEqual(error_line, $2)"
 		],
 		"description": "Test Brewin program raises error"
 	},

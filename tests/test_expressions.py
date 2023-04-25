@@ -16,10 +16,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (+ "the meaning of life is " 42)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_int_eq_str(self):
         brewin = string_to_program('''
@@ -27,10 +29,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (== 42 "42")))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_str_eq_bool(self):
         brewin = string_to_program('''
@@ -38,10 +42,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (== "42" true)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_bool_eq_int(self):
         brewin = string_to_program('''
@@ -49,10 +55,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (== true 42)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_str_sub_str(self):
         brewin = string_to_program('''
@@ -60,10 +68,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (- "abc" "a")))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_str_or_int(self):
         brewin = string_to_program('''
@@ -71,10 +81,12 @@ class TestGeneral(unittest.TestCase):
                 (method main () (print (| "fours up" 4444)))
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 2)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
     def test_not_int(self):
         brewin = string_to_program('''
@@ -153,10 +165,12 @@ class TestGeneral(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 13)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 13)
 
     def test_missing_field(self):
         brewin = string_to_program('''
@@ -178,11 +192,14 @@ class TestGeneral(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 13)
 
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 13)
+
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_missing_parameter(self):
         brewin = string_to_program('''
             (class duck
@@ -203,10 +220,12 @@ class TestGeneral(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.NAME_ERROR)
-            self.assertEqual(error_line, 3)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 3)
 
 
 class TestNew(unittest.TestCase):
@@ -257,7 +276,9 @@ class TestNew(unittest.TestCase):
                 )
             )
         ''')
-        with self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin):
-            error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-            self.assertIs(error_type, ErrorType.TYPE_ERROR)
-            self.assertEqual(error_line, 13)
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 13)

@@ -133,26 +133,26 @@ def string_to_program(str):
 
 
 def main():
-    brewin = '''(class main
-                    (field num 0)
-                    (field result 1)
-                    (method main ()
-                        (begin
-                        (print "Enter a number: ")
-                        (inputi num)
-                        (print num " factorial is " (call me factorial num))))
+    # brewin = '''(class main
+    #                 (field num 0)
+    #                 (field result 1)
+    #                 (method main ()
+    #                     (begin
+    #                     (print "Enter a number: ")
+    #                     (inputi num)
+    #                     (print num " factorial is " (call me factorial num))))
 
-                    (method factorial (n)
-                        (begin
-                        (set result 1)
-                        (while (> n 0)
-                            (begin
-                            (set result (* n result))
-                            (set n (- n 1))))
-                        (return result))))'''
-    # print(len("""\r\n"""))
-    from pprint import pprint
-    pprint(BParser.parse(string_to_program(brewin)))
+    #                 (method factorial (n)
+    #                     (begin
+    #                     (set result 1)
+    #                     (while (> n 0)
+    #                         (begin
+    #                         (set result (* n result))
+    #                         (set n (- n 1))))
+    #                     (return result))))'''
+    # # print(len("""\r\n"""))
+    # from pprint import pprint
+    # pprint(BParser.parse(string_to_program(brewin)))
     # print(BParser.parse([r'(class main (field num 0) (field result 1) (method main () (begin (print "Enter a number: ") (inputi num) (print num " factorial is " (call me factorial num)))) (method factorial (n) (begin (set result 1) (while (> n 0) (begin (set result (* n result)) (set n (- n 1)))) (return result))))']))
     # print(string_to_program(''))
     # print(BParser.parse(['']))
@@ -174,7 +174,22 @@ def main():
     # brewin = string_to_program('''(print "ever seen 'air quotes' before?")''')
     # print(BParser.parse(brewin))
     # print(BParser.parse(['(-14) (- 14) (- 14 15)']))
-    print(BParser.parse(['random words']))
+    # print(BParser.parse(['random words']))
+    # brewin = string_to_program('''
+    #         (class main
+    #             (field thing 1)
+    #             (field thing 2)
+    #             (method main () (print "main"))
+    #         )
+    #     ''')
+    brewin = string_to_program('''
+            (class main
+                (method main()
+                    (print me)
+                )
+            )
+        ''')
+    print(BParser.parse(brewin))
 
 
 if __name__ == '__main__':
