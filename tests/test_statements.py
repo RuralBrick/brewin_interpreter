@@ -530,6 +530,19 @@ class TestInput(unittest.TestCase):
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 5)
 
+    def test_expression(self):
+        interpreter = Interpreter(False, inp=['4'])
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (begin
+                        (inputi (+ 1 2))
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
 
 class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
@@ -828,6 +841,18 @@ class TestSet(unittest.TestCase):
                 (method foo () (print "hello world")) # does not return a value
                 (method main ()
                     (set a)
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+    
+    def test_expression_as_variable(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (begin
+                        (set (+ 1 2) 3)
+                    )
                 )
             )
         ''')

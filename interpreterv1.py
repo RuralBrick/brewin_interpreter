@@ -162,7 +162,11 @@ class Recipe:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate fields in {self.name}: {name}",
                        name.line_num)
-        self.fields[name] = Ingredient(value, self.error, self.trace_output)
+        try:
+            self.fields[name] = Ingredient(value, self.error, self.trace_output)
+        except ValueError:
+            self.error(ErrorType.SYNTAX_ERROR, f"Not a valid value: {value}",
+                       value.line_num)
 
     def add_method(self, name: SWLN, params: list[SWLN], statement):
         if name in self.methods:
@@ -181,6 +185,9 @@ class Ingredient:
     """
     def __init__(self, value: BrewinTypes, error: ErrorFun,
                  trace_output: bool) -> None:
+        """
+        Throws ValueError on invalid value
+        """
         self.error = error
         self.trace_output = trace_output
 
@@ -204,9 +211,6 @@ class Ingredient:
                 except IndexError:
                     self.error(ErrorType.SYNTAX_ERROR, "Blank value, somehow",
                                value.line_num)
-                except ValueError:
-                    self.error(ErrorType.SYNTAX_ERROR,
-                               f"Invalid value: {value}", value.line_num)
 
     def __str__(self) -> str:
         match self.value:
@@ -284,7 +288,11 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
         case variable if isSWLN(variable) and variable in scope:
             return scope[variable]
         case const if isSWLN(const):
-            return Ingredient(const, error, trace_output)
+            try:
+                return Ingredient(const, error, trace_output)
+            except ValueError:
+                error(ErrorType.NAME_ERROR, f"Variable not found: {const}",
+                      const.line_num)
         case [InterpreterBase.CALL_DEF, obj_expression, method, *arguments] \
                 if isSWLN(method):
             cuppa = evaluate_expression(obj_expression, me, classes, parameters,
@@ -395,8 +403,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 debug(f"{type(blend)=}")
             return Ingredient(blend, error, trace_output)
         case _:
-            error(ErrorType.NAME_ERROR,
-                  f"Could not match expression: {expression}")
+            error(ErrorType.SYNTAX_ERROR,
+                  f"Not a valid expression: {expression}")
 
 
 def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],

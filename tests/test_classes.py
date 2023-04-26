@@ -210,6 +210,19 @@ class TestFields(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
         
         self.assertEqual(output[0], '1')
+    
+    def test_expression_as_value(self):
+        brewin = string_to_program('''
+            (class main
+                (field start (+ 1 2))
+                (method main ()
+                    (begin
+                        (print start)
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
 
 class TestMethods(unittest.TestCase):
