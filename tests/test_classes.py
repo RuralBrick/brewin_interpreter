@@ -194,6 +194,22 @@ class TestFields(unittest.TestCase):
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 3)
+    
+    def test_field_named_const(self):
+        brewin = string_to_program('''
+            (class main
+                (field true 1)
+                (method main ()
+                    (print true)
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '1')
 
 
 class TestMethods(unittest.TestCase):

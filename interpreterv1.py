@@ -1,3 +1,32 @@
+"""
+Reference:
+
+Barista - Interpreter;
+
+Recipe - class definition;
+cuppa - object;
+tea - new object/copy of class definition;
+cup_of_the_day - main object;
+
+Instruction - method;
+brew - object's method;
+steep - copy of method;
+recommended_brew - main object's method;
+service - result of a method call;
+order - result of a statement;
+
+Ingredient - boxed value;
+beans - instantiated Ingredient;
+grounds - value;
+cream - secondary value;
+leaf - copy of field value;
+roast - value after unary operation;
+blend - value after binary operation;
+
+bear - Brewin error;
+rare - RuntimeError;
+"""
+
 from typing import Callable, Union, Tuple
 import copy
 import sys
@@ -119,8 +148,8 @@ class Recipe:
     def __copy__(self):
         tea = Recipe(self.name, [], self.get_input, self.output, self.error,
                      self.trace_output)
-        for variety, leaf in self.fields.items():
-            tea.add_field(variety, leaf.value)
+        for name, leaf in self.fields.items():
+            tea.add_field(name, leaf.value)
         for steep in self.methods.values():
             tea.add_method(steep.name, steep.formals, steep.statement)
         return tea
@@ -156,9 +185,9 @@ class Ingredient:
         self.trace_output = trace_output
 
         match value:
-            case value if not isSWLN(value):
+            case grounds if not isSWLN(grounds):
                 if self.trace_output:
-                    debug(f"Raw value to Ingredient: {value}:{type(value)}")
+                    debug(f"Raw value to Ingredient: {grounds}:{type(grounds)}")
                 self.value = value
             case InterpreterBase.NULL_DEF:
                 self.value = None
@@ -230,6 +259,9 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         parameters: dict[SWLN, Ingredient],
                         scope: dict[SWLN, Ingredient],
                         error: ErrorFun, trace_output: bool) -> Ingredient:
+    """
+    Guaranteed to return a boxed value (or throw a Brewin error if unable to)
+    """
     if trace_output:
         if type(expression) == list:
             try:
@@ -270,7 +302,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       f"Method being called on non-object",
                       expression[0].line_num)
             try:
-                result = brew.call(
+                service = brew.call(
                     *(evaluate_expression(argument, me, classes, parameters,
                                           scope, error, trace_output)
                       for argument in arguments),
@@ -280,12 +312,12 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR,
                       f"Method called with wrong number of arguments: {method}",
                       expression[0].line_num)
-            if result == None:
+            if service == None:
                 error(ErrorType.TYPE_ERROR,
                       f"Method did not return a value: {method}",
                       expression[0].line_num)
             else:
-                return result
+                return service
         case [InterpreterBase.NEW_DEF, name] if isSWLN(name):
             try:
                 cuppa = classes[name]
@@ -294,69 +326,69 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       expression[0].line_num)
             return Ingredient(copy.copy(cuppa), error, trace_output)
         case [unary_operator, sub_expression] if isSWLN(unary_operator):
-            beans = evaluate_expression(sub_expression, me, classes, parameters,
+            grounds = evaluate_expression(sub_expression, me, classes, parameters,
                                         scope, error, trace_output).value
             if trace_output:
-                debug(f"{unary_operator=} with {beans=}:{type(beans)}")
+                debug(f"{unary_operator=} with {grounds=}:{type(grounds)}")
             match unary_operator:
-                case '!' if type(beans) == bool:
-                    roast = bool(not beans)
+                case '!' if type(grounds) == bool:
+                    roast = bool(not grounds)
                 case _:
                     error(ErrorType.TYPE_ERROR,
                         f"No use of {unary_operator} is compatible with "
-                        f"expression type: {type(beans)}",
+                        f"expression type: {type(grounds)}",
                         unary_operator.line_num)
             if trace_output:
                 debug(f"{type(roast)=}")
             return Ingredient(roast, error, trace_output)
         case [binary_operator, left_expression, right_expression]:
-            beans = evaluate_expression(left_expression, me, classes,
+            grounds = evaluate_expression(left_expression, me, classes,
                                         parameters, scope, error,
                                         trace_output).value
             cream = evaluate_expression(right_expression, me, classes,
                                         parameters, scope, error,
                                         trace_output).value
             if trace_output:
-                debug(f"{binary_operator=} with {beans=}:{type(beans)} and "
+                debug(f"{binary_operator=} with {grounds=}:{type(grounds)} and "
                       f"{cream=}:{type(cream)}")
             match binary_operator:
                 # NOTE: `eval` only used after operator becomes known to prevent
                 #       arbitrary code execution
-                case '+'|'-'|'*'|'/'|'%' if type(beans) == type(cream) == int:
+                case '+'|'-'|'*'|'/'|'%' if type(grounds) == type(cream) == int:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = int(operator(beans, cream))
+                    blend = int(operator(grounds, cream))
                 case '<'|'>'|'<='|'>='|'!='|'==' \
-                        if type(beans) == type(cream) == int:
+                        if type(grounds) == type(cream) == int:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = bool(operator(beans, cream))
-                case '+' if type(beans) == type(cream) == str:
+                    blend = bool(operator(grounds, cream))
+                case '+' if type(grounds) == type(cream) == str:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = str(operator(beans, cream))
+                    blend = str(operator(grounds, cream))
                 case '=='|'!='|'<'|'>'|'<='|'>=' \
-                        if type(beans) == type(cream) == str:
+                        if type(grounds) == type(cream) == str:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = bool(operator(beans, cream))
-                case '!='|'==' if type(beans) == type(cream) == bool:
+                    blend = bool(operator(grounds, cream))
+                case '!='|'==' if type(grounds) == type(cream) == bool:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = bool(operator(beans, cream))
-                case '&' if type(beans) == type(cream) == bool:
-                    blend = bool(beans and cream)
-                case '|' if type(beans) == type(cream) == bool:
-                    blend = bool(beans or cream)
+                    blend = bool(operator(grounds, cream))
+                case '&' if type(grounds) == type(cream) == bool:
+                    blend = bool(grounds and cream)
+                case '|' if type(grounds) == type(cream) == bool:
+                    blend = bool(grounds or cream)
                 case _:
                     error(ErrorType.TYPE_ERROR,
                         f"No use of {binary_operator} is compatible with "
-                        f"expression types: {type(beans)}, {type(cream)}",
+                        f"expression types: {type(grounds)}, {type(cream)}",
                         binary_operator.line_num)
             if trace_output:
                 debug(f"{type(blend)=}")
@@ -371,6 +403,10 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                        scope: dict[SWLN, Ingredient], get_input: InputFun,
                        output: OutputFun, error: ErrorFun, trace_output: bool) \
                         -> Tuple[bool, None | Ingredient]:
+    """
+    Returns a tuple of the form (<if the method is returning>, <the boxed value
+    of the return, if there is one>)
+    """
     if trace_output:
         try:
             debug(f"line {statement[0].line_num}: Running {statement[0]}")
@@ -380,17 +416,17 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
             debug(f"no line_num: Running {statement[0]}")
     match statement:
         case [InterpreterBase.BEGIN_DEF, sub_statement1, *sub_statements]:
-            last_result = evaluate_statement(sub_statement1, me, classes,
-                                             parameters, scope, get_input,
-                                             output, error, trace_output)
-            if last_result[0]:
-                return last_result
+            latest_order = evaluate_statement(sub_statement1, me, classes,
+                                              parameters, scope, get_input,
+                                              output, error, trace_output)
+            if latest_order[0]:
+                return latest_order
             for sub_statement in sub_statements:
-                last_result = evaluate_statement(sub_statement, me, classes,
-                                                 parameters, scope, get_input,
-                                                 output, error, trace_output)
-                if last_result[0]:
-                    return last_result
+                latest_order = evaluate_statement(sub_statement, me, classes,
+                                                  parameters, scope, get_input,
+                                                  output, error, trace_output)
+                if latest_order[0]:
+                    return latest_order
         case [InterpreterBase.CALL_DEF, expression, method, *arguments] \
                 if isSWLN(method):
             cuppa = evaluate_expression(expression, me, classes, parameters,
@@ -426,11 +462,11 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
-                result = evaluate_statement(true_statement, me, classes,
-                                            parameters, scope, get_input,
-                                            output, error, trace_output)
-                if result[0]:
-                    return result
+                order = evaluate_statement(true_statement, me, classes,
+                                           parameters, scope, get_input,
+                                           output, error, trace_output)
+                if order[0]:
+                    return order
         case [InterpreterBase.IF_DEF, expression, true_statement,
               false_statement]:
             condition = evaluate_expression(expression, me, classes, parameters,
@@ -440,17 +476,17 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
-                result = evaluate_statement(true_statement, me, classes,
-                                            parameters, scope, get_input,
-                                            output, error, trace_output)
-                if result[0]:
-                    return result
+                order = evaluate_statement(true_statement, me, classes,
+                                           parameters, scope, get_input,
+                                           output, error, trace_output)
+                if order[0]:
+                    return order
             else:
-                result = evaluate_statement(false_statement, me, classes,
-                                            parameters, scope, get_input,
-                                            output, error, trace_output)
-                if result[0]:
-                    return result
+                order = evaluate_statement(false_statement, me, classes,
+                                           parameters, scope, get_input,
+                                           output, error, trace_output)
+                if order[0]:
+                    return order
         case [InterpreterBase.INPUT_INT_DEF, variable] if isSWLN(variable):
             if variable in parameters:
                 parameters[variable] = Ingredient(int(get_input()), error,
@@ -514,11 +550,11 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                           statement[0].line_num)
                 if not condition:
                     break
-                last_result = evaluate_statement(statement_to_run, me, classes,
-                                                 parameters, scope, get_input,
-                                                 output, error, trace_output)
-                if last_result[0]:
-                    return last_result
+                latest_order = evaluate_statement(statement_to_run, me, classes,
+                                                  parameters, scope, get_input,
+                                                  output, error, trace_output)
+                if latest_order[0]:
+                    return latest_order
         case _:
             error(ErrorType.SYNTAX_ERROR, f"Not a valid statement: {statement}")
     return False, None
