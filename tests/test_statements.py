@@ -271,6 +271,19 @@ class TestCall(unittest.TestCase):
         error_type, error_line = interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 12)
+    
+    def test_call_on_non_object(self):
+        brewin = string_to_program('''
+            (class main
+                (field num 1)
+                (method main ()
+                    (begin
+                        (call num do_something)
+                    ) 
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
     @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_multiline_bad_method(self):
@@ -583,6 +596,7 @@ class TestPrint(unittest.TestCase):
 
         self.assertEqual(output[0], '-14')
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_object(self):
         brewin = string_to_program('''
             (class main

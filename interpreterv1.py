@@ -245,60 +245,30 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             except AttributeError:
                 debug(f"no line_num: Expression is {expression}")
     match expression:
+        case InterpreterBase.ME_DEF:
+            return Ingredient(me, error, trace_output)
         case variable if isSWLN(variable) and variable in parameters:
             return parameters[variable]
         case variable if isSWLN(variable) and variable in scope:
             return scope[variable]
         case const if isSWLN(const):
             return Ingredient(const, error, trace_output)
-        case [InterpreterBase.CALL_DEF, InterpreterBase.ME_DEF, method,
-              *arguments] if isSWLN(method):
-            try:
-                signature_brew = me.methods[method]
-            except KeyError:
-                error(ErrorType.NAME_ERROR,
-                      f"Could not find method: {InterpreterBase.ME_DEF}."
-                      f"{method}",
-                      method.line_num)
-            try:
-                result = signature_brew.call(
-                    *(evaluate_expression(argument, me, classes, parameters,
-                                          scope, error, trace_output)
-                      for argument in arguments),
-                    classes=classes
-                )
-            except ValueError:
-                error(ErrorType.TYPE_ERROR,
-                      f"Method called with wrong number of arguments: "
-                      f"{InterpreterBase.ME_DEF}.{method}",
-                      expression[0].line_num)
-            if result == None:
-                error(ErrorType.TYPE_ERROR,
-                      f"Statement did not return a value: "
-                      f"{InterpreterBase.ME_DEF}.{method}",
-                      expression[0].line_num)
-            else:
-                return result
-        case [InterpreterBase.CALL_DEF, obj, method, *arguments] \
-                if isSWLN(obj) and isSWLN(method):
-            try:
-                cuppa = scope[obj].value
-            except KeyError:
-                error(ErrorType.NAME_ERROR, f"Could not find object: {obj}",
-                      obj.line_num)
+        case [InterpreterBase.CALL_DEF, obj_expression, method, *arguments] \
+                if isSWLN(method):
+            cuppa = evaluate_expression(obj_expression, me, classes, parameters,
+                                        scope, error, trace_output).value
             if cuppa == None:
                 error(ErrorType.FAULT_ERROR,
-                      f"Trying to dereference nullptr: {obj}",
-                      obj.line_num)
+                      f"Trying to dereference nullptr", expression[0].line_num)
             try:
                 brew = cuppa.methods[method]
             except KeyError:
                 error(ErrorType.NAME_ERROR,
-                      f"Could not find method: {obj}.{method}",
-                      method.line_num)
+                      f"Object does not have method: {method}", method.line_num)
             except AttributeError:
-                error(ErrorType.TYPE_ERROR, f"Not an object: {obj}",
-                      obj.line_num)
+                error(ErrorType.TYPE_ERROR,
+                      f"Method being called on non-object",
+                      expression[0].line_num)
             try:
                 result = brew.call(
                     *(evaluate_expression(argument, me, classes, parameters,
@@ -308,12 +278,11 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 )
             except ValueError:
                 error(ErrorType.TYPE_ERROR,
-                      f"Method called with wrong number of arguments: {obj}."
-                      f"{method}",
+                      f"Method called with wrong number of arguments: {method}",
                       expression[0].line_num)
             if result == None:
                 error(ErrorType.TYPE_ERROR,
-                      f"Statement did not return a value: {obj}.{method}",
+                      f"Method did not return a value: {method}",
                       expression[0].line_num)
             else:
                 return result
@@ -324,8 +293,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR, f"Could not find class: {name}",
                       expression[0].line_num)
             return Ingredient(copy.copy(cuppa), error, trace_output)
-        case [unary_operator, expression] if isSWLN(unary_operator):
-            beans = evaluate_expression(expression, me, classes, parameters,
+        case [unary_operator, sub_expression] if isSWLN(unary_operator):
+            beans = evaluate_expression(sub_expression, me, classes, parameters,
                                         scope, error, trace_output).value
             if trace_output:
                 debug(f"{unary_operator=} with {beans=}:{type(beans)}")
@@ -379,8 +348,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 debug(f"{type(blend)=}")
             return Ingredient(blend, error, trace_output)
         case _:
-            error(ErrorType.SYNTAX_ERROR,
-                  f"Not a valid expression: {expression}")
+            error(ErrorType.NAME_ERROR,
+                  f"Could not match expression: {expression}")
 
 
 def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
@@ -408,47 +377,22 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                                                  output, error, trace_output)
                 if last_result[0]:
                     return last_result
-        case [InterpreterBase.CALL_DEF, InterpreterBase.ME_DEF, method,
-              *arguments] if isSWLN(method):
-            try:
-                signature_brew = me.methods[method]
-            except KeyError:
-                error(ErrorType.NAME_ERROR,
-                      f"Could not find method: {InterpreterBase.ME_DEF}."
-                      f"{method}",
-                      method.line_num)
-            try:
-                signature_brew.call(
-                    *(evaluate_expression(argument, me, classes, parameters,
-                                          scope, error, trace_output)
-                      for argument in arguments),
-                    classes=classes
-                )
-            except ValueError:
-                error(ErrorType.TYPE_ERROR,
-                      f"Method called with wrong number of arguments: {obj}."
-                      f"{method}",
-                      statement[0].line_num)
-        case [InterpreterBase.CALL_DEF, obj, method, *arguments] \
-                if isSWLN(obj) and isSWLN(method):
-            try:
-                cuppa = scope[obj].value
-            except KeyError:
-                error(ErrorType.NAME_ERROR, f"Could not find object: {obj}",
-                      obj.line_num)
+        case [InterpreterBase.CALL_DEF, expression, method, *arguments] \
+                if isSWLN(method):
+            cuppa = evaluate_expression(expression, me, classes, parameters,
+                                        scope, error, trace_output).value
             if cuppa == None:
                 error(ErrorType.FAULT_ERROR,
-                      f"Trying to dereference nullptr: {obj}",
-                      obj.line_num)
+                      f"Trying to dereference nullptr", statement[0].line_num)
             try:
                 brew = cuppa.methods[method]
             except KeyError:
                 error(ErrorType.NAME_ERROR,
-                      f"Could not find method: {obj}.{method}",
-                      method.line_num)
+                      f"Object does not have method: {method}", method.line_num)
             except AttributeError:
-                error(ErrorType.TYPE_ERROR, f"Not an object: {obj}",
-                      obj.line_num)
+                error(ErrorType.TYPE_ERROR,
+                      f"Method being called on non-object",
+                      statement[0].line_num)
             try:
                 brew.call(
                     *(evaluate_expression(argument, me, classes, parameters,
@@ -458,8 +402,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                 )
             except ValueError:
                 error(ErrorType.TYPE_ERROR,
-                      f"Method called with wrong number of arguments: {obj}."
-                      f"{method}",
+                      f"Method called with wrong number of arguments: {method}",
                       statement[0].line_num)
         case [InterpreterBase.IF_DEF, expression, true_statement]:
             condition = evaluate_expression(expression, me, classes, parameters,
