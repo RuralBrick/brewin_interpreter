@@ -326,8 +326,9 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       expression[0].line_num)
             return Ingredient(copy.copy(cuppa), error, trace_output)
         case [unary_operator, sub_expression] if isSWLN(unary_operator):
-            grounds = evaluate_expression(sub_expression, me, classes, parameters,
-                                        scope, error, trace_output).value
+            grounds = evaluate_expression(sub_expression, me, classes,
+                                          parameters, scope, error,
+                                          trace_output).value
             if trace_output:
                 debug(f"{unary_operator=} with {grounds=}:{type(grounds)}")
             match unary_operator:
@@ -343,8 +344,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             return Ingredient(roast, error, trace_output)
         case [binary_operator, left_expression, right_expression]:
             grounds = evaluate_expression(left_expression, me, classes,
-                                        parameters, scope, error,
-                                        trace_output).value
+                                          parameters, scope, error,
+                                          trace_output).value
             cream = evaluate_expression(right_expression, me, classes,
                                         parameters, scope, error,
                                         trace_output).value
