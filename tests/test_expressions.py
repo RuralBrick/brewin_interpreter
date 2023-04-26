@@ -10,6 +10,66 @@ class TestGeneral(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
+    def test_int_plus_int(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (print (+ 9 10))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '19')
+
+    def test_int_minus_int(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (print (- 69 42))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '27')
+
+    def test_int_times_int(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (print (* 3 5))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '15')
+
+    def test_int_div_int(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (print (/ 7 2))
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output[0], '3')
+
     def test_str_plus_int(self):
         brewin = string_to_program('''
             (class main

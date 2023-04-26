@@ -300,7 +300,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 debug(f"{unary_operator=} with {beans=}:{type(beans)}")
             match unary_operator:
                 case '!' if type(beans) == bool:
-                    roast = not beans
+                    roast = bool(not beans)
                 case _:
                     error(ErrorType.TYPE_ERROR,
                         f"No use of {unary_operator} is compatible with "
@@ -322,23 +322,37 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             match binary_operator:
                 # NOTE: `eval` only used after operator becomes known to prevent
                 #       arbitrary code execution
-                case '+'|'-'|'*'|'/'|'%'|'<'|'>'|'<='|'>='|'!='|'==' \
+                case '+'|'-'|'*'|'/'|'%' if type(beans) == type(cream) == int:
+                    operator = eval(
+                        f'lambda left, right: left {binary_operator} right'
+                    )
+                    blend = int(operator(beans, cream))
+                case '<'|'>'|'<='|'>='|'!='|'==' \
                         if type(beans) == type(cream) == int:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = operator(beans, cream)
-                case '+'|'=='|'!='|'<'|'>'|'<='|'>=' \
+                    blend = bool(operator(beans, cream))
+                case '+' if type(beans) == type(cream) == str:
+                    operator = eval(
+                        f'lambda left, right: left {binary_operator} right'
+                    )
+                    blend = str(operator(beans, cream))
+                case '=='|'!='|'<'|'>'|'<='|'>=' \
                         if type(beans) == type(cream) == str:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = operator(beans, cream)
-                case '!='|'=='|'&'|'|' if type(beans) == type(cream) == bool:
+                    blend = bool(operator(beans, cream))
+                case '!='|'==' if type(beans) == type(cream) == bool:
                     operator = eval(
                         f'lambda left, right: left {binary_operator} right'
                     )
-                    blend = operator(beans, cream)
+                    blend = bool(operator(beans, cream))
+                case '&' if type(beans) == type(cream) == bool:
+                    blend = bool(beans and cream)
+                case '|' if type(beans) == type(cream) == bool:
+                    blend = bool(beans or cream)
                 case _:
                     error(ErrorType.TYPE_ERROR,
                         f"No use of {binary_operator} is compatible with "
