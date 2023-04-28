@@ -297,7 +297,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 if isSWLN(method):
             cuppa = evaluate_expression(obj_expression, me, classes, parameters,
                                         scope, error, trace_output).value
-            if cuppa == None:
+            if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
                       f"Trying to dereference nullptr", expression[0].line_num)
             try:
@@ -320,7 +320,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR,
                       f"Method called with wrong number of arguments: {method}",
                       expression[0].line_num)
-            if service == None:
+            if service is None:
                 error(ErrorType.TYPE_ERROR,
                       f"Method did not return a value: {method}",
                       expression[0].line_num)
@@ -394,6 +394,12 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                     blend = bool(grounds and cream)
                 case '|' if type(grounds) == type(cream) == bool:
                     blend = bool(grounds or cream)
+                case '==' if (grounds is None or isinstance(grounds, Recipe)) \
+                          and (cream is None isinstance(cream, Recipe)):
+                    blend = bool(grounds is cream)
+                case '!=' if (grounds is None or isinstance(grounds, Recipe)) \
+                          and (cream is None isinstance(cream, Recipe)):
+                    blend = bool(grounds is not cream)
                 case _:
                     error(ErrorType.TYPE_ERROR,
                         f"No use of {binary_operator} is compatible with "
@@ -440,7 +446,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                 if isSWLN(method):
             cuppa = evaluate_expression(expression, me, classes, parameters,
                                         scope, error, trace_output).value
-            if cuppa == None:
+            if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
                       f"Trying to dereference nullptr", statement[0].line_num)
             try:
