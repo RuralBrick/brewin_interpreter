@@ -178,6 +178,63 @@ class TestGeneral(unittest.TestCase):
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
+    def test_pointers(self):
+        brewin = string_to_program('''
+            (class ob
+                (method ject ()
+                    (return 1)
+                )
+            )
+
+            (class main
+                (field object null)
+                (method main ()
+                    (begin
+                        (print (== null null))
+                        (print (== null object))
+                        (print (== object null))
+                        (print (== object object))
+                        (print (!= null null))
+                        (print (!= null object))
+                        (print (!= object null))
+                        (print (!= object object))
+                        (set object (new ob))
+                        (print (== null null))
+                        (print (== null object))
+                        (print (== object null))
+                        (print (== object object))
+                        (print (!= null null))
+                        (print (!= null object))
+                        (print (!= object null))
+                        (print (!= object object))
+                    )
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        expected = '''true
+true
+true
+true
+false
+false
+false
+false
+true
+false
+false
+true
+false
+true
+true
+false'''
+
+        self.assertEqual(output, expected.splitlines())
+
     def test_pond_scene(self):
         brewin = string_to_program('''
             (class duck
