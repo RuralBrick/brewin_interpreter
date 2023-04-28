@@ -394,11 +394,11 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                     blend = bool(grounds and cream)
                 case '|' if type(grounds) == type(cream) == bool:
                     blend = bool(grounds or cream)
-                case '==' if (grounds is None or isinstance(grounds, Recipe)) \
-                          and (cream is None isinstance(cream, Recipe)):
+                case '==' if ((grounds is None or isinstance(grounds, Recipe))
+                              and (cream is None or isinstance(cream, Recipe))):
                     blend = bool(grounds is cream)
-                case '!=' if (grounds is None or isinstance(grounds, Recipe)) \
-                          and (cream is None isinstance(cream, Recipe)):
+                case '!=' if ((grounds is None or isinstance(grounds, Recipe))
+                              and (cream is None or isinstance(cream, Recipe))):
                     blend = bool(grounds is not cream)
                 case _:
                     error(ErrorType.TYPE_ERROR,
