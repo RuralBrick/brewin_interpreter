@@ -408,6 +408,9 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             if trace_output:
                 debug(f"{type(blend)=}")
             return Ingredient(blend, error, trace_output)
+        case [sub_expression]:
+            return evaluate_expression(sub_expression, me, classes, parameters,
+                                       scope, error, trace_output)
         case _:
             error(ErrorType.SYNTAX_ERROR,
                   f"Not a valid expression: {expression}")
@@ -570,6 +573,8 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                                                   output, error, trace_output)
                 if latest_order[0]:
                     return latest_order
+        case [sub_statement]:
+            return evaluate_statement(sub_statement)
         case _:
             error(ErrorType.SYNTAX_ERROR, f"Not a valid statement: {statement}")
     return False, None
