@@ -22,7 +22,7 @@ class TestGeneral(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '19')
 
     def test_int_minus_int(self):
@@ -37,7 +37,7 @@ class TestGeneral(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '27')
 
     def test_int_times_int(self):
@@ -52,7 +52,7 @@ class TestGeneral(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '15')
 
     def test_int_div_int(self):
@@ -67,7 +67,7 @@ class TestGeneral(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '3')
 
     def test_str_plus_int(self):
@@ -215,7 +215,7 @@ class TestGeneral(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         expected = '''true
 true
 true

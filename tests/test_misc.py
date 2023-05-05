@@ -141,7 +141,7 @@ class TestSemantics(unittest.TestCase):
 
         self.assertEqual(output[0], 'Enter a number: ')
         self.assertEqual(output[1], '4 factorial is 24')
-    
+
     def test_factory(self):
         brewin = string_to_program('''
             (class robot
@@ -201,7 +201,7 @@ class TestSemantics(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         for i in range(3):
             self.assertEqual(output[i], 'beep')
             self.assertEqual(output[i+3], 'boop')

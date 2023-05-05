@@ -271,7 +271,7 @@ class TestCall(unittest.TestCase):
         error_type, error_line = interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 12)
-    
+
     def test_call_on_non_object(self):
         brewin = string_to_program('''
             (class main
@@ -279,7 +279,7 @@ class TestCall(unittest.TestCase):
                 (method main ()
                     (begin
                         (call num do_something)
-                    ) 
+                    )
                 )
             )
         ''')
@@ -537,6 +537,21 @@ class TestInput(unittest.TestCase):
                 (method main ()
                     (begin
                         (inputi (+ 1 2))
+                    )
+                )
+            )
+        ''')
+        self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+    def test_not_enough_input(self):
+        interpreter = Interpreter(False, inp=['8'])
+        brewin = string_to_program('''
+            (class main
+                (field var 0)
+                (method main ()
+                    (begin
+                        (inputi var)
+                        (inputi var)
                     )
                 )
             )
@@ -845,7 +860,7 @@ class TestSet(unittest.TestCase):
             )
         ''')
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-    
+
     def test_expression_as_variable(self):
         brewin = string_to_program('''
             (class main
@@ -1010,3 +1025,124 @@ class TestWhile(unittest.TestCase):
                         (return result))))
         ''')
         self.assertRaises(RuntimeError, interpreter.run, brewin)
+
+    def test_calculator(self):
+        interpreter = Interpreter(False, inp=['8', 'y', '4', 'y', '/', 'y', 'y', 'stop'])
+        brewin = string_to_program('''
+            (class main
+                (field a 0)
+                (field b 0)
+                (field c 0)
+                (field o "")
+                (field state "a")
+                (field in "")
+                (method main ()
+                    (while (!= in "stop")
+                        (begin
+                            (if (== state "a")
+                                (begin
+                                    (print "Enter a number")
+                                    (inputi a)
+                                    (set state "b")
+                                )
+                            (if (== state "b")
+                                (begin
+                                    (print "Enter another number")
+                                    (inputi b)
+                                    (set state "o")
+                                )
+                            (if (== state "o")
+                                (begin
+                                    (print "Enter an operation")
+                                    (inputs o)
+                                    (set state "c")
+                                )
+                            (if (== state "c")
+                                (begin
+                                    (if (== o "+")
+                                        (set c (+ a b))
+                                    (if (== o "-")
+                                        (set c (- a b))
+                                    (if (== o "*")
+                                        (set c (* a b))
+                                    (if (== o "/")
+                                        (set c (/ a b))
+                                    ))))
+                                    (set state "e")
+                                )
+                            (if (== state "e")
+                                (begin
+                                    (print a " " o " " b " = " c)
+                                    (set state "a")
+                                )
+                            )))))
+                            (print "Continue?")
+                            (inputs in)
+                        )
+                    )
+                )
+            )
+        ''')
+
+        interpreter.reset()
+        interpreter.run(brewin)
+        output = interpreter.get_output()
+
+        self.assertEqual(output, [
+            'Enter a number',
+            'Continue?',
+            'Enter another number',
+            'Continue?',
+            'Enter an operation',
+            'Continue?',
+            'Continue?',
+            '8 / 4 = 2',
+            'Continue?'
+        ])
+
+    def test_condition_change_type(self):
+        brewin = string_to_program('''
+            (class main
+                (field state 1)
+                (method cond ()
+                    (begin
+                        (set state (% (+ state 1) 2))
+                        (if (== state 0)
+                            (return true)
+                            (return "true")
+                        )
+                    )
+                )
+                (method main ()
+                    (while (call me cond)
+                        (print "hi")
+                    )
+                )
+            )
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 13)
+
+    def test_immediate_return(self):
+        brewin = string_to_program('''
+            (class main
+                (method main ()
+                    (while true
+                        (begin
+                            (print "hi")
+                            (return 0)
+                        )
+                    )
+                )
+            )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output[0], 'hi')
