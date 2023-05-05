@@ -504,11 +504,27 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                     return order
         case [InterpreterBase.INPUT_INT_DEF, variable] if isSWLN(variable):
             if variable in parameters:
-                parameters[variable] = Ingredient(int(get_input()), error,
-                                                  trace_output)
+                try:
+                    parameters[variable] = Ingredient(int(get_input()), error,
+                                                      trace_output)
+                except ValueError:
+                    error(ErrorType.TYPE_ERROR,
+                          "Could not convert input to integer",
+                          statement[0].line_num)
+                except TypeError:
+                    error(ErrorType.TYPE_ERROR, "Expected input but got none",
+                          statement[0].line_num)
             elif variable in scope:
-                scope[variable] = Ingredient(int(get_input()), error,
-                                             trace_output)
+                try:
+                    scope[variable] = Ingredient(int(get_input()), error,
+                                                 trace_output)
+                except ValueError:
+                    error(ErrorType.TYPE_ERROR,
+                          "Could not convert input to integer",
+                          statement[0].line_num)
+                except TypeError:
+                    error(ErrorType.TYPE_ERROR, "Expected input but got none",
+                          statement[0].line_num)
             else:
                 error(ErrorType.NAME_ERROR, f"Variable not found: {variable}",
                       variable.line_num)
@@ -581,35 +597,11 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-            (class person
-                (field name "")
-                (field age 0)
-                (method init (n a)
-                    (begin
-                    (set name n)
-                    (set age a)
-                    )
-                )
-                (method talk (to_whom)
-                    (print name " says hello to " to_whom)
-                )
-            )
-
             (class main
-                (field p null)
-                (method tell_joke (to_whom)
-                    (print "Hey " to_whom ", knock knock!")
-                )
-                (method main ()
-                    (begin
-                        (call me tell_joke "Matt") # call tell_joke in current object
-                        (set p (new person))  # allocate a new person obj, point p at it
-                        (call p init "Siddarth" 25) # call init in object pointed to by p
-                        (call p talk "Paul")       # call talk in object pointed to by p
-                    )
-                )
+                (method void hi (return hi))
+                (method main () (print (call me void "hi")))
             )
-        '''
+    '''
     try:
         interpreter.run(script.splitlines())
         print(interpreter.get_output())
