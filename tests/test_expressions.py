@@ -316,7 +316,6 @@ false'''
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 13)
 
-    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_missing_parameter(self):
         brewin = string_to_program('''
             (class duck

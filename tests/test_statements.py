@@ -563,7 +563,6 @@ class TestPrint(unittest.TestCase):
     def setUp(self) -> None:
         self.deaf_interpreter = Interpreter(console_output=False, inp=[], trace_output=False)
 
-    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_expression_missing_parenthesis(self):
         brewin = string_to_program('''
             (class main
