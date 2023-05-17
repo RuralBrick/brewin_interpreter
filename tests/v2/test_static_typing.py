@@ -614,9 +614,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '30')
-      
+
     def test_parameter_passing_class(self):
         brewin = string_to_program('''
             (class person
@@ -651,9 +651,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'ih')
-    
+
     def test_parameter_passing_subtype(self):
         brewin = string_to_program('''
             (class person
@@ -688,9 +688,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'ih')
-    
+
     def test_parameter_passing_incompatible(self):
         brewin = string_to_program('''
             (class person
@@ -720,11 +720,11 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 21)
-      
+
     def test_parameter_passing_unrelated(self):
         brewin = string_to_program('''
             (class person
@@ -757,11 +757,11 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 22)
-    
+
     def test_parameter_passing_siblings(self):
         brewin = string_to_program('''
             (class person
@@ -794,7 +794,7 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 23)
@@ -828,9 +828,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], '5')
-      
+
     def test_returned_value_class(self):
         brewin = string_to_program('''
             (class person
@@ -859,9 +859,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'ih')
-      
+
     def test_returned_value_upcast(self):
         brewin = string_to_program('''
             (class person
@@ -890,9 +890,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'ih')
-    
+
     def test_returned_value_null(self):
         brewin = string_to_program('''
             (class person
@@ -921,7 +921,7 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'None')
 
     def test_returned_value_void(self):
@@ -957,9 +957,9 @@ class TestTypeChecking(unittest.TestCase):
         self.deaf_interpreter.reset()
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
-        
+
         self.assertEqual(output[0], 'q is non-zero')
-    
+
     def test_returned_value_incompatible(self):
         brewin = string_to_program('''
             (class person
@@ -986,11 +986,11 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
-      
+
     def test_returned_value_unrelated(self):
         brewin = string_to_program('''
             (class person
@@ -1017,11 +1017,11 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
-    
+
     def test_returned_value_siblings(self):
         brewin = string_to_program('''
             (class person
@@ -1048,7 +1048,7 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
@@ -1079,11 +1079,11 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
-    
+
     def test_returned_value_non_void(self):
         brewin = string_to_program('''
             (class person
@@ -1110,7 +1110,7 @@ class TestTypeChecking(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
