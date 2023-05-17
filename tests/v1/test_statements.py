@@ -1,6 +1,6 @@
 import unittest
 
-from settings import PURPOSELY_DIFFERENT
+from .settings import PURPOSELY_DIFFERENT
 from bparser import string_to_program
 from intbase import ErrorType
 from interpreterv1 import Interpreter
