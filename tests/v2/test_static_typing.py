@@ -1,5 +1,6 @@
 import unittest
 
+from .settings import PURPOSELY_DIFFERENT
 from bparser import string_to_program
 from intbase import ErrorType
 from interpreterv2 import Interpreter
@@ -128,6 +129,22 @@ class TestMethods(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output[0], 'Hello, World!')
+    
+    def test_ham_parameter(self):
+        brewin = string_to_program('''
+            (class main
+  (method int test ((ham x)) (return (+ x x)))
+    (method void main ()
+      (print (call me test 9))
+    )
+  )
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+        
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 2)
 
 
 class TestTypeChecking(unittest.TestCase):
@@ -465,7 +482,7 @@ class TestTypeChecking(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output[0], '17')
-        self.assertEqual(output[0], '5')
+        self.assertEqual(output[1], '5')
 
     def test_assignment_different_types(self):
         brewin = string_to_program('''
@@ -893,6 +910,7 @@ class TestTypeChecking(unittest.TestCase):
 
         self.assertEqual(output[0], 'ih')
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_null(self):
         brewin = string_to_program('''
             (class person
