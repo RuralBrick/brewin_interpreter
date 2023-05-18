@@ -1,5 +1,6 @@
 import unittest
 
+from .settings import PURPOSELY_DIFFERENT
 from bparser import string_to_program
 from intbase import ErrorType
 from interpreterv2 import Interpreter
@@ -96,3 +97,44 @@ q is less than zero
 
         self.assertEqual(output, '''true
 false'''.splitlines())
+
+    def test_object(self):
+        brewin = string_to_program('''
+            (class person
+  (method string gimme () (return "here you go"))
+)
+
+(class main
+  (method person house ()
+    (return)
+  )
+    (method void main ()
+      (print (call (call me house) gimme))
+    )
+  )
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.FAULT_ERROR)
+        self.assertEqual(error_line, 10)
+
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
+    def test_void(self):
+        brewin = string_to_program('''
+            (class main
+  (method void house ()
+    (return)
+  )
+    (method void main ()
+      (print (call me house))
+    )
+  )
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''None'''.splitlines())

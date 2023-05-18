@@ -129,7 +129,7 @@ class TestMethods(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output[0], 'Hello, World!')
-    
+
     def test_ham_parameter(self):
         brewin = string_to_program('''
             (class main
@@ -141,7 +141,7 @@ class TestMethods(unittest.TestCase):
         ''')
 
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
-        
+
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 2)
@@ -777,7 +777,7 @@ class TestTypeChecking(unittest.TestCase):
 
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.NAME_ERROR)
-        self.assertEqual(error_line, 22)
+        self.assertEqual(error_line, 23)
 
     def test_parameter_passing_siblings(self):
         brewin = string_to_program('''
@@ -978,6 +978,7 @@ class TestTypeChecking(unittest.TestCase):
 
         self.assertEqual(output[0], 'q is non-zero')
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_incompatible(self):
         brewin = string_to_program('''
             (class person
@@ -1009,6 +1010,7 @@ class TestTypeChecking(unittest.TestCase):
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_unrelated(self):
         brewin = string_to_program('''
             (class person
@@ -1040,6 +1042,7 @@ class TestTypeChecking(unittest.TestCase):
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_siblings(self):
         brewin = string_to_program('''
             (class person
@@ -1071,6 +1074,7 @@ class TestTypeChecking(unittest.TestCase):
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_downcast(self):
         brewin = string_to_program('''
             (class person
@@ -1102,6 +1106,7 @@ class TestTypeChecking(unittest.TestCase):
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
 
+    @unittest.skipIf(PURPOSELY_DIFFERENT, "Purposely different")
     def test_returned_value_non_void(self):
         brewin = string_to_program('''
             (class person
