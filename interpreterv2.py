@@ -27,6 +27,8 @@ leaf - copy of field value;
 roast - value after unary operation;
 blend - value after binary operation;
 
+Plate - stack frame;
+
 bear - Brewin error;
 rare - RuntimeError;
 """
@@ -483,6 +485,9 @@ class Instruction:
 
 
 class Plate:
+    """
+    Stack frame
+    """
     def __init__(self, stack: Union['Plate', None], me: Recipe,
                  classes: dict[SWLN, Recipe], error: ErrorFun,
                  trace_output: bool) -> None:
