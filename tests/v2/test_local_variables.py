@@ -30,7 +30,7 @@ class TestEverything(unittest.TestCase):
         self.deaf_interpreter.run(brewin)
         output = self.deaf_interpreter.get_output()
 
-        self.assertEqual(output[0], '''10
+        self.assertEqual(output, '''10
 5
 bar'''.splitlines())
 
