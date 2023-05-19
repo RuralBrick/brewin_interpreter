@@ -1137,3 +1137,32 @@ class TestTypeChecking(unittest.TestCase):
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 18)
+
+    def test_return_assign_type(self):
+        brewin = string_to_program('''
+            (class a
+  (method int return_int () (return 5))
+)
+
+(class b inherits a
+  (method int return_int () (return 6))
+)
+
+(class main
+  (field b obj2 null)
+  (method a get_a ()
+    (return null)
+  )
+  (method void main ()
+    (begin
+      (set obj2 (call me get_a))
+    )
+  )
+)
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 16)

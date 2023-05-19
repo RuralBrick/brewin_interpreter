@@ -365,8 +365,9 @@ class Instruction:
     """
     def __init__(self, name: SWLN, btype: SWLN, params: dict[SWLN, SWLN] | Any,
                  statement, me: Recipe, classes: dict[SWLN, Recipe],
-                 fields: dict[SWLN, Tin], get_input: InputFun, output: OutputFun,
-                 error: ErrorFun, trace_output: bool) -> None:
+                 fields: dict[SWLN, Tin], get_input: InputFun,
+                 output: OutputFun, error: ErrorFun, trace_output: bool) \
+                    -> None:
         self.name = name
         self.statement = statement
         self.me = me
@@ -913,20 +914,22 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class dog
-  (method void bark () (print "WOOF!"))
+(class a
+  (method int return_int () (return 5))
+)
+
+(class b inherits a
+  (method int return_int () (return 6))
 )
 
 (class main
-(method void foo ((dog r))
-  (set r null)
-)
-
+  (field b obj2 null)
+  (method a get_a ()
+    (return null)
+  )
   (method void main ()
-    (let ((dog pupper null))
-    (set pupper (new dog))
-    (call me foo pupper)
-    (call pupper bark)
+    (begin
+      (set obj2 (call me get_a))
     )
   )
 )
