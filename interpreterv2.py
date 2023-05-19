@@ -106,15 +106,18 @@ class Barista(InterpreterBase):
                 self.classes[InterpreterBase.MAIN_CLASS_DEF]
             )
         except KeyError:
-            super().error(ErrorType.SYNTAX_ERROR, "Main class not found")
+            super().error(ErrorType.TYPE_ERROR, "Main class not found")
 
         try:
             cup_of_the_day.call_method(InterpreterBase.MAIN_FUNC_DEF)
         except KeyError:
-            super().error(ErrorType.SYNTAX_ERROR, "Main method not found")
+            super().error(ErrorType.NAME_ERROR, "Main method not found",
+                          cup_of_the_day.name.line_num)
         except ValueError:
-            super().error(ErrorType.SYNTAX_ERROR,
-                          "Main method cannot accept arguments")
+            super().error(ErrorType.TYPE_ERROR,
+                          "Main method cannot accept arguments",
+                          (cup_of_the_day.methods[InterpreterBase.MAIN_FUNC_DEF]
+                           .name.line_num))
         except NameError as e:
             super().error(ErrorType.NAME_ERROR, str(e),
                           (cup_of_the_day.methods[InterpreterBase.MAIN_FUNC_DEF]
