@@ -152,6 +152,7 @@ class Ingredient:
         """
         self.error = error
         self.trace_output = trace_output
+        self.btype = None
 
         match value:
             case grounds if not isSWLN(grounds):
@@ -300,6 +301,7 @@ class Tin:
         Throws TypeError on incompatible type
         """
         self.name = name
+        self.classes = classes
         self.error = error
         self.trace_output = trace_output
 
@@ -321,22 +323,32 @@ class Tin:
         match self.btype:
             case InterpreterBase.INT_DEF:
                 if type(grounds) == int:
+                    boxed_value.btype = self.btype
                     self.value = boxed_value
                     return
             case InterpreterBase.STRING_DEF:
                 if type(grounds) == str:
+                    boxed_value.btype = self.btype
                     self.value = boxed_value
                     return
             case InterpreterBase.BOOL_DEF:
                 if type(grounds) == bool:
+                    boxed_value.btype = self.btype
                     self.value = boxed_value
                     return
             case class_name:
+                if (boxed_value.btype and boxed_value.btype in self.classes
+                    and not self.classes[boxed_value.btype]
+                                .is_instance(self.btype)):
+                    raise TypeError(f"Class {boxed_value.btype} not derived "
+                                    f"from {class_name}")
                 if grounds is None:
+                    boxed_value.btype = self.btype
                     self.value = boxed_value
                     return
                 try:
                     if grounds.is_instance(class_name):
+                        boxed_value.btype = self.btype
                         self.value = boxed_value
                         return
                     raise TypeError(f"Class {grounds.name} not derived from "
@@ -427,18 +439,23 @@ class Instruction:
             match self.btype:
                 case InterpreterBase.INT_DEF:
                     if type(grounds) == int:
+                        beans.btype = self.btype
                         return beans
                 case InterpreterBase.STRING_DEF:
                     if type(grounds) == str:
+                        beans.btype = self.btype
                         return beans
                 case InterpreterBase.BOOL_DEF:
                     if type(grounds) == bool:
+                        beans.btype = self.btype
                         return beans
                 case class_name:
                     if grounds is None:
+                        beans.btype = self.btype
                         return beans
                     try:
                         if grounds.is_instance(class_name):
+                            beans.btype = self.btype
                             return beans
                         raise TypeError(f"Returned object class {grounds.name} "
                                         f"not derived from {class_name}")
@@ -463,15 +480,23 @@ class Instruction:
 
         match self.btype:
             case InterpreterBase.INT_DEF:
-                return Ingredient(0, self.error, self.trace_output)
+                beans = Ingredient(0, self.error, self.trace_output)
+                beans.btype = self.btype
+                return beans
             case InterpreterBase.STRING_DEF:
-                return Ingredient("", self.error, self.trace_output)
+                beans = Ingredient("", self.error, self.trace_output)
+                beans.btype = self.btype
+                return beans
             case InterpreterBase.BOOL_DEF:
-                return Ingredient(False, self.error, self.trace_output)
+                beans = Ingredient(False, self.error, self.trace_output)
+                beans.btype = self.btype
+                return beans
             case InterpreterBase.VOID_DEF:
                 return None
             case class_name:
-                return Ingredient(None, self.error, self.trace_output)
+                beans = Ingredient(None, self.error, self.trace_output)
+                beans.btype = self.btype
+                return beans
 
     def add_parameter(self, name: SWLN, btype: SWLN):
         if name in self.formals:
