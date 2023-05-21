@@ -717,7 +717,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         if not (fragrance.is_instance(flavor.name)
                                 and flavor.is_instance(fragrance.name)):
                             error(ErrorType.TYPE_ERROR,
-                                  f"Classes {grounds.name} and {cream.name} "
+                                  f"Classes {fragrance.name} and {flavor.name} "
                                   f"are not related",
                                   binary_operator.line_num)
                     except AttributeError:
@@ -737,7 +737,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         if not (fragrance.is_instance(flavor.name)
                                 and flavor.is_instance(fragrance.name)):
                             error(ErrorType.TYPE_ERROR,
-                                  f"Classes {grounds.name} and {cream.name} "
+                                  f"Classes {fragrance.name} and {flavor.name} "
                                   f"are not related",
                                   binary_operator.line_num)
                     except AttributeError:
