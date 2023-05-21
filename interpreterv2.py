@@ -978,34 +978,25 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class program
-  (field int state 3)
-  (method bool condition ()
-    (begin
-    (let ((int temp 0))
-      (if (== (% state 2) temp)
-        (set temp (/ state 2))
-        (set temp (+ (* 3 state) 1))
-      )
-      (print temp)
-      (set state temp)
+(class main
+ (field int x 0)
+ (method void main ()
+  (begin
+    (while (< x 2)
+      (begin 
+       (print x)
+       (set x (+ x 1))
+     )
     )
-      (if (| (| (== state 1) (== state 2)) (== state 4))
-        (return false)
-        (return true)
-      )
+    (while false 
+     (print x)
     )
-  )
-)
-
-(class main inherits program
-  (method void main ()
-    (while (call super condition)
-      (print "Running...")
+    (while (< x 0)
+     (print x)
     )
   )
+ )
 )
-
     '''
     try:
         interpreter.run(script.splitlines())
