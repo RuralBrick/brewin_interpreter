@@ -337,12 +337,12 @@ class Tin:
                     self.value = boxed_value
                     return
             case class_name:
-                if (boxed_value.btype and boxed_value.btype in self.classes
-                    and not self.classes[boxed_value.btype]
-                                .is_instance(self.btype)):
-                    raise TypeError(f"Class {boxed_value.btype} not derived "
-                                    f"from {class_name}")
                 if grounds is None:
+                    if (boxed_value.btype and boxed_value.btype in self.classes
+                        and not self.classes[boxed_value.btype]
+                                    .is_instance(self.btype)):
+                        raise TypeError(f"Class {boxed_value.btype} not "
+                                        f"derived from {class_name}")
                     boxed_value.btype = self.btype
                     self.value = boxed_value
                     return
