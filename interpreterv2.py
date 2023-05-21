@@ -119,7 +119,7 @@ class Barista(InterpreterBase):
             super().error(ErrorType.NAME_ERROR, "Main method not found",
                           cup_of_the_day.name.line_num)
         except ValueError:
-            super().error(ErrorType.TYPE_ERROR,
+            super().error(ErrorType.NAME_ERROR,
                           "Main method cannot accept arguments",
                           (cup_of_the_day.methods[InterpreterBase.MAIN_FUNC_DEF]
                            .name.line_num))
@@ -621,7 +621,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       f"Method being called on non-object",
                       expression[0].line_num)
             except ValueError:
-                error(ErrorType.TYPE_ERROR,
+                error(ErrorType.NAME_ERROR,
                       f"Method called with wrong number of arguments: {method}",
                       expression[0].line_num)
             except NameError as e:
@@ -805,7 +805,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       f"Method being called on non-object",
                       statement[0].line_num)
             except ValueError:
-                error(ErrorType.TYPE_ERROR,
+                error(ErrorType.NAME_ERROR,
                       f"Method called with wrong number of arguments: {method}",
                       statement[0].line_num)
             except NameError as e:
@@ -968,25 +968,19 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class a
-  (method int return_int () (return 5))
+(class person
+  (method void speak () (print "hello, world"))
 )
 
-(class b inherits a
-  (method int return_int () (return 6))
+(class robot
+  (method void speak ((string subject)) (print "hello, " subject))
 )
 
 (class main
-  (field b obj2 null)
-  (method a get_a ()
-    (return null)
-  )
   (method void main ()
-    (begin
-      (set obj2 (call me get_a))
+      (call (new robot) speak)
     )
   )
-)
     '''
     try:
         interpreter.run(script.splitlines())
