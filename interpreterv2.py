@@ -979,24 +979,24 @@ def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
 (class main
- (field int x 0)
- (method void main ()
-  (begin
-    (while (< x 2)
-      (begin 
-       (print x)
-       (set x (+ x 1))
-     )
-    )
-    (while false 
-     (print x)
-    )
-    (while (< x 0)
-     (print x)
+    (method void main ()
+      (let ((int i 3))
+        (while (> i 0)
+          (begin
+          (let ((int i 3))
+            (while (> i 0)
+              (begin
+                (print i)
+                (set i (- i 1))
+              )
+            )
+          )
+          (set i (- i 1))
+          )
+        )
+      )
     )
   )
- )
-)
     '''
     try:
         interpreter.run(script.splitlines())
