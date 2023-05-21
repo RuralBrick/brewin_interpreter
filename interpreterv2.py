@@ -4,6 +4,8 @@ Reference:
 Barista - Interpreter;
 
 Recipe - class definition;
+fragrance - class;
+flavor - secondary class;
 cuppa - object;
 tea - new object/copy of class definition;
 cup_of_the_day - main object;
@@ -21,6 +23,7 @@ bag - copy of variable;
 
 Ingredient - boxed value;
 beans - instantiated Ingredient;
+milk - secondary instantiated Ingredient;
 grounds - value;
 cream - secondary value;
 leaf - copy of field value;
@@ -655,13 +658,14 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             if trace_output:
                 debug(f"{type(roast)=}")
             return Ingredient(roast, error, trace_output)
-        case [binary_operator, left_expression, right_expression]:
-            grounds = evaluate_expression(left_expression, me, classes, stack,
-                                          parameters, fields, error,
-                                          trace_output).value
-            cream = evaluate_expression(right_expression, me, classes, stack,
-                                        parameters, fields, error,
-                                        trace_output).value
+        case [binary_operator, left_expression, right_expression] \
+                if isSWLN(binary_operator):
+            beans = evaluate_expression(left_expression, me, classes, stack,
+                                        parameters, fields, error, trace_output)
+            grounds = beans.value
+            milk = evaluate_expression(right_expression, me, classes, stack,
+                                       parameters, fields, error, trace_output)
+            cream = milk.value
             if trace_output:
                 debug(f"{binary_operator=} with {grounds=}:{type(grounds)} and "
                       f"{cream=}:{type(cream)}")
@@ -699,25 +703,45 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                     blend = bool(grounds and cream)
                 case '|' if type(grounds) == type(cream) == bool:
                     blend = bool(grounds or cream)
-                case '==' if (isinstance(grounds, Recipe)
-                              and isinstance(cream, Recipe)
-                              and (grounds.is_instance(cream.name)
-                                   or cream.is_instance(grounds.name))):
-                    blend = bool (grounds is cream)
-                case '!=' if (isinstance(grounds, Recipe)
-                              and isinstance(cream, Recipe)
-                              and (grounds.is_instance(cream.name)
-                                   or cream.is_instance(grounds.name))):
-                    blend = bool (grounds is not cream)
                 case '==' if ((grounds is None or isinstance(grounds, Recipe))
-                              and (cream is None or isinstance(cream, Recipe))
-                              and not (isinstance(grounds, Recipe)
-                                       and isinstance(cream, Recipe))):
+                              and (cream is None or isinstance(cream, Recipe))):
+                    if beans.btype:
+                        fragrance = classes[beans.btype]
+                    else:
+                        fragrance = grounds
+                    if milk.btype:
+                        flavor = classes[milk.btype]
+                    else:
+                        flavor = milk
+                    try:
+                        if not (fragrance.is_instance(flavor.name)
+                                and flavor.is_instance(fragrance.name)):
+                            error(ErrorType.TYPE_ERROR,
+                                  f"Classes {grounds.name} and {cream.name} "
+                                  f"are not related",
+                                  binary_operator.line_num)
+                    except AttributeError:
+                        pass
                     blend = bool(grounds is cream)
                 case '!=' if ((grounds is None or isinstance(grounds, Recipe))
-                              and (cream is None or isinstance(cream, Recipe))
-                              and not (isinstance(grounds, Recipe)
-                                       and isinstance(cream, Recipe))):
+                              and (cream is None or isinstance(cream, Recipe))):
+                    if beans.btype:
+                        fragrance = classes[beans.btype]
+                    else:
+                        fragrance = grounds
+                    if milk.btype:
+                        flavor = classes[milk.btype]
+                    else:
+                        flavor = milk
+                    try:
+                        if not (fragrance.is_instance(flavor.name)
+                                and flavor.is_instance(fragrance.name)):
+                            error(ErrorType.TYPE_ERROR,
+                                  f"Classes {grounds.name} and {cream.name} "
+                                  f"are not related",
+                                  binary_operator.line_num)
+                    except AttributeError:
+                        pass
                     blend = bool(grounds is not cream)
                 case _:
                     error(ErrorType.TYPE_ERROR,
