@@ -273,7 +273,8 @@ class Recipe:
         return self.name == class_name or (self.parent and
                                            self.parent.is_instance(class_name))
 
-    def call_method(self, name: SWLN, *args: Ingredient) -> Ingredient | None:
+    def call_method(self, name: SWLN, *args: Ingredient,
+                    me: Union['Recipe', None] = None) -> Ingredient | None:
         """
         Throws KeyError if method not found
 
@@ -285,12 +286,12 @@ class Recipe:
         """
         if self.parent:
             try:
-                return self.methods[name].call(*args)
+                return self.methods[name].call(*args, me=me if me else self)
             except (KeyError, ValueError, NameError, TypeError):
                 pass
-            return self.parent.call_method(name, *args)
+            return self.parent.call_method(name, *args, me=me if me else self)
         else:
-            return self.methods[name].call(*args)
+            return self.methods[name].call(*args, me=me if me else self)
 
 
 class Tin:
@@ -413,7 +414,7 @@ class Instruction:
                         error(ErrorType.SYNTAX_ERROR,
                               f"Malformed parameter: {param}", name.line_num)
 
-    def call(self, *args: Ingredient) -> Ingredient | None:
+    def call(self, *args: Ingredient, me: Recipe) -> Ingredient | None:
         """
         Throws ValueError on wrong number of arguments
 
@@ -422,7 +423,7 @@ class Instruction:
         Throws TypeError on wrong type returned
         """
         try:
-            parameters = {formal: Tin(formal, btype, actual, self.me,
+            parameters = {formal: Tin(formal, btype, actual, me,
                                       self.classes, self.error,
                                       self.trace_output)
                           for (formal, btype), actual
@@ -430,11 +431,11 @@ class Instruction:
         except TypeError as e:
             raise NameError(str(e))
 
-        is_return, beans = evaluate_statement(self.statement, self.me,
-                                              self.classes, None, parameters,
-                                              self.fields, self.get_input,
-                                              self.output, self.error,
-                                              self.trace_output)
+        is_return, beans = evaluate_statement(self.statement, me,
+                                              self.me.parent, self.classes,
+                                              None, parameters, self.fields,
+                                              self.get_input, self.output,
+                                              self.error, self.trace_output)
         if is_return and beans:
             grounds = beans.value
             if self.trace_output:
@@ -561,10 +562,10 @@ class Plate:
         return None
 
 
-def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
-                        stack: Plate | None, parameters: dict[SWLN, Tin],
-                        fields: dict[SWLN, Tin], error: ErrorFun,
-                        trace_output: bool) -> Ingredient:
+def evaluate_expression(expression, me: Recipe, super: Recipe | None,
+                        classes: dict[SWLN, Recipe], stack: Plate | None,
+                        parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
+                        error: ErrorFun, trace_output: bool) -> Ingredient:
     """
     Guaranteed to return a boxed value (or throw a Brewin error if unable to)
     """
@@ -586,7 +587,11 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
         case InterpreterBase.ME_DEF:
             return Ingredient(me, error, trace_output)
         case InterpreterBase.SUPER_DEF:
-            return Ingredient(me.parent, error, trace_output)
+            if super:
+                return Ingredient(super, error, trace_output)
+            else:
+                error(ErrorType.TYPE_ERROR, "Class is not inherited",
+                      expression.line_num)
         case variable if isSWLN(variable) and stack\
                          and (can := stack.get_variable(variable)):
             return can.value
@@ -602,8 +607,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       const.line_num)
         case [InterpreterBase.CALL_DEF, obj_expression, method, *arguments] \
                 if isSWLN(method):
-            cuppa = evaluate_expression(obj_expression, me, classes, stack,
-                                        parameters, fields, error,
+            cuppa = evaluate_expression(obj_expression, me, super, classes,
+                                        stack, parameters, fields, error,
                                         trace_output).value
             if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
@@ -611,7 +616,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             try:
                 service = cuppa.call_method(
                     method,
-                    *(evaluate_expression(argument, me, classes, stack,
+                    *(evaluate_expression(argument, me, super, classes, stack,
                                           parameters, fields, error,
                                           trace_output)
                       for argument in arguments)
@@ -645,8 +650,8 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                       expression[0].line_num)
             return Ingredient(copy.copy(cuppa), error, trace_output)
         case [unary_operator, sub_expression] if isSWLN(unary_operator):
-            grounds = evaluate_expression(sub_expression, me, classes, stack,
-                                          parameters, fields, error,
+            grounds = evaluate_expression(sub_expression, me, super, classes,
+                                          stack, parameters, fields, error,
                                           trace_output).value
             if trace_output:
                 debug(f"{unary_operator=} with {grounds=}:{type(grounds)}")
@@ -663,11 +668,13 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
             return Ingredient(roast, error, trace_output)
         case [binary_operator, left_expression, right_expression] \
                 if isSWLN(binary_operator):
-            beans = evaluate_expression(left_expression, me, classes, stack,
-                                        parameters, fields, error, trace_output)
+            beans = evaluate_expression(left_expression, me, super, classes,
+                                        stack, parameters, fields, error,
+                                        trace_output)
             grounds = beans.value
-            milk = evaluate_expression(right_expression, me, classes, stack,
-                                       parameters, fields, error, trace_output)
+            milk = evaluate_expression(right_expression, me, super, classes,
+                                       stack, parameters, fields, error,
+                                       trace_output)
             cream = milk.value
             if trace_output:
                 debug(f"{binary_operator=} with {grounds=}:{type(grounds)} and "
@@ -759,11 +766,11 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                   f"Not a valid expression: {expression}")
 
 
-def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
-                       stack: Plate | None, parameters: dict[SWLN, Tin],
-                       fields: dict[SWLN, Tin], get_input: InputFun,
-                       output: OutputFun, error: ErrorFun, trace_output: bool) \
-                        -> Tuple[bool, None | Ingredient]:
+def evaluate_statement(statement, me: Recipe, super: Recipe | None,
+                       classes: dict[SWLN, Recipe], stack: Plate | None,
+                       parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
+                       get_input: InputFun, output: OutputFun, error: ErrorFun,
+                       trace_output: bool) -> Tuple[bool, None | Ingredient]:
     """
     Returns a tuple of the form (<if the method is returning>, <the boxed value
     of the return, if there is one>)
@@ -778,15 +785,15 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
     match statement:
         case [InterpreterBase.BEGIN_DEF, *sub_statements] if sub_statements:
             for sub_statement in sub_statements:
-                latest_order = evaluate_statement(sub_statement, me, classes,
-                                                  stack, parameters, fields,
-                                                  get_input, output, error,
-                                                  trace_output)
+                latest_order = evaluate_statement(sub_statement, me, super,
+                                                  classes, stack, parameters,
+                                                  fields, get_input, output,
+                                                  error, trace_output)
                 if latest_order[0]:
                     return latest_order
         case [InterpreterBase.CALL_DEF, expression, method, *arguments] \
                 if isSWLN(method):
-            cuppa = evaluate_expression(expression, me, classes, stack,
+            cuppa = evaluate_expression(expression, me, super, classes, stack,
                                         parameters, fields, error,
                                         trace_output).value
             if cuppa is None:
@@ -795,7 +802,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
             try:
                 cuppa.call_method(
                     method,
-                    *(evaluate_expression(argument, me, classes, stack,
+                    *(evaluate_expression(argument, me, super, classes, stack,
                                           parameters, fields, error,
                                           trace_output)
                       for argument in arguments)
@@ -816,7 +823,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
             except TypeError as e:
                 error(ErrorType.TYPE_ERROR, str(e), statement[0].line_num)
         case [InterpreterBase.IF_DEF, expression, true_statement]:
-            condition = evaluate_expression(expression, me, classes, stack,
+            condition = evaluate_expression(expression, me, super, classes, stack,
                                             parameters, fields, error,
                                             trace_output).value
             if type(condition) != bool:
@@ -824,29 +831,29 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
-                order = evaluate_statement(true_statement, me, classes, stack,
-                                           parameters, fields, get_input,
+                order = evaluate_statement(true_statement, me, super, classes,
+                                           stack, parameters, fields, get_input,
                                            output, error, trace_output)
                 if order[0]:
                     return order
         case [InterpreterBase.IF_DEF, expression, true_statement,
               false_statement]:
-            condition = evaluate_expression(expression, me, classes, stack,
-                                            parameters, fields, error,
+            condition = evaluate_expression(expression, me, super, classes,
+                                            stack, parameters, fields, error,
                                             trace_output).value
             if type(condition) != bool:
                 error(ErrorType.TYPE_ERROR,
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
-                order = evaluate_statement(true_statement, me, classes, stack,
-                                           parameters, fields, get_input,
+                order = evaluate_statement(true_statement, me, super, classes,
+                                           stack, parameters, fields, get_input,
                                            output, error, trace_output)
                 if order[0]:
                     return order
             else:
-                order = evaluate_statement(false_statement, me, classes, stack,
-                                           parameters, fields, get_input,
+                order = evaluate_statement(false_statement, me, super, classes,
+                                           stack, parameters, fields, get_input,
                                            output, error, trace_output)
                 if order[0]:
                     return order
@@ -894,7 +901,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
             output(
                 ''.join(
                     str(
-                        evaluate_expression(argument, me, classes, stack,
+                        evaluate_expression(argument, me, super, classes, stack,
                                             parameters, fields, error,
                                             trace_output)
                     )
@@ -904,8 +911,8 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
         case [InterpreterBase.RETURN_DEF]:
             return True, None
         case [InterpreterBase.RETURN_DEF, expression]:
-            return True, evaluate_expression(expression, me, classes, stack,
-                                             parameters, fields, error,
+            return True, evaluate_expression(expression, me, super, classes,
+                                             stack, parameters, fields, error,
                                              trace_output)
         case [InterpreterBase.SET_DEF, variable, expression] \
                 if isSWLN(variable):
@@ -918,7 +925,7 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
             else:
                 error(ErrorType.NAME_ERROR, f"Variable not found: {variable}",
                       variable.line_num)
-            beans = evaluate_expression(expression, me, classes, stack,
+            beans = evaluate_expression(expression, me, super, classes, stack,
                                         parameters, fields, error, trace_output)
             try:
                 can.set_value(beans)
@@ -926,19 +933,19 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                 error(ErrorType.TYPE_ERROR, str(e), variable.line_num)
         case [InterpreterBase.WHILE_DEF, expression, statement_to_run]:
             while True:
-                condition = evaluate_expression(expression, me, classes, stack,
-                                                parameters, fields, error,
-                                                trace_output).value
+                condition = evaluate_expression(expression, me, super, classes,
+                                                stack, parameters, fields,
+                                                error, trace_output).value
                 if type(condition) != bool:
                     error(ErrorType.TYPE_ERROR,
                           "Condition did not evaluate to boolean",
                           statement[0].line_num)
                 if not condition:
                     break
-                latest_order = evaluate_statement(statement_to_run, me, classes,
-                                                  stack, parameters, fields,
-                                                  get_input, output, error,
-                                                  trace_output)
+                latest_order = evaluate_statement(statement_to_run, me, super,
+                                                  classes, stack, parameters,
+                                                  fields, get_input, output,
+                                                  error, trace_output)
                 if latest_order[0]:
                     return latest_order
         case [InterpreterBase.LET_DEF, var_defs, *sub_statements] \
@@ -954,10 +961,10 @@ def evaluate_statement(statement, me: Recipe, classes: dict[SWLN, Recipe],
                               f"Malformed local variable: {var_def}",
                               statement[0].line_num)
             for sub_statement in sub_statements:
-                latest_order = evaluate_statement(sub_statement, me, classes,
-                                                  stack, parameters, fields,
-                                                  get_input, output, error,
-                                                  trace_output)
+                latest_order = evaluate_statement(sub_statement, me, super,
+                                                  classes, stack, parameters,
+                                                  fields, get_input, output,
+                                                  error, trace_output)
                 if latest_order[0]:
                     return latest_order
         case _:
@@ -971,12 +978,31 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
+(class mammal
+ (method void foo () (print "m") )
+ (method void bar () (call me foo) )
+)
+
+(class person inherits mammal
+ (method void foo () (print "p") )
+ (method void bar () (call me foo) )
+ (method void zig () (call super foo))
+)
+
+(class student inherits person
+ (method void foo () (print "s") )
+ #(method void zig () (call super foo)) #line B
+)
+
 (class main
- (method void foo () 
-   (return "abc"))
- (method void main ()
-  (call me foo)
- )
+  (field person p null) #line A
+  (method void main ()
+    (begin
+     (set p (new student))
+     (call p zig)
+     (call p bar)
+    )
+  )
 )
     '''
     try:
