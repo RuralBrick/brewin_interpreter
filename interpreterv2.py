@@ -452,6 +452,9 @@ class Instruction:
                     if type(grounds) == bool:
                         beans.btype = self.btype
                         return beans
+                case InterpreterBase.VOID_DEF:
+                    raise TypeError(f"Cannot return any value from method of "
+                                    f"type {InterpreterBase.VOID_DEF}")
                 case class_name:
                     if grounds is None:
                         beans.btype = self.btype
@@ -968,19 +971,13 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class person
-  (method void speak () (print "hello, world"))
-)
-
-(class robot
-  (method void speak ((string subject)) (print "hello, " subject))
-)
-
 (class main
-  (method void main ()
-      (call (new robot) speak)
-    )
-  )
+ (method void foo () 
+   (return "abc"))
+ (method void main ()
+  (call me foo)
+ )
+)
     '''
     try:
         interpreter.run(script.splitlines())
