@@ -1166,3 +1166,212 @@ class TestTypeChecking(unittest.TestCase):
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 16)
+
+    def test_object_comparison1(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o1 (new person))
+      (set o2 o1)
+      (print (== o1 o2))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''true'''.splitlines())
+
+    def test_object_comparison2(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o1 (new person))
+      (set o2 (new person))
+      (print (== o1 o2))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''false'''.splitlines())
+
+    def test_object_comparison3(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o1 (new robot))
+      (set o2 o1)
+      (print (== o1 o2))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''true'''.splitlines())
+
+    
+    def test_object_comparison4(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o1 (new person))
+      (set o2 (new robot))
+      (print (== o1 o2))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''false'''.splitlines())
+
+    def test_object_comparison5(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o3 (new robot))
+      (set o1 o3)
+      (print (== o1 o3))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''true'''.splitlines())
+
+    def test_object_comparison6(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (set o3 (new robot))
+      (set o1 (new robot))
+      (print (== o1 o3))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''false'''.splitlines())
+
+    def test_object_comparison7(self):
+        brewin = string_to_program('''
+            (class person
+  (method void dissociate () (return))
+)
+
+(class robot inherits person
+  (method void beep () (return))
+)
+
+(class main
+  (field person o1 null)
+  (field person o2 null)
+  (field robot o3 null)
+  (method void main ()
+    (begin
+      (print (== o1 o3))
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+        
+        self.assertEqual(output, '''true'''.splitlines())

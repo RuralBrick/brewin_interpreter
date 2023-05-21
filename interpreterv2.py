@@ -715,7 +715,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         flavor = milk
                     try:
                         if not (fragrance.is_instance(flavor.name)
-                                and flavor.is_instance(fragrance.name)):
+                                or flavor.is_instance(fragrance.name)):
                             error(ErrorType.TYPE_ERROR,
                                   f"Classes {fragrance.name} and {flavor.name} "
                                   f"are not related",
@@ -735,7 +735,7 @@ def evaluate_expression(expression, me: Recipe, classes: dict[SWLN, Recipe],
                         flavor = milk
                     try:
                         if not (fragrance.is_instance(flavor.name)
-                                and flavor.is_instance(fragrance.name)):
+                                or flavor.is_instance(fragrance.name)):
                             error(ErrorType.TYPE_ERROR,
                                   f"Classes {fragrance.name} and {flavor.name} "
                                   f"are not related",
