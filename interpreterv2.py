@@ -978,32 +978,34 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class mammal
- (method void foo () (print "m") )
- (method void bar () (call me foo) )
-)
-
-(class person inherits mammal
- (method void foo () (print "p") )
- (method void bar () (call me foo) )
- (method void zig () (call super foo))
-)
-
-(class student inherits person
- (method void foo () (print "s") )
- #(method void zig () (call super foo)) #line B
-)
-
-(class main
-  (field person p null) #line A
-  (method void main ()
+(class program
+  (field int state 3)
+  (method bool condition ()
     (begin
-     (set p (new student))
-     (call p zig)
-     (call p bar)
+    (let ((int temp 0))
+      (if (== (% state 2) temp)
+        (set temp (/ state 2))
+        (set temp (+ (* 3 state) 1))
+      )
+      (print temp)
+      (set state temp)
+    )
+      (if (| (| (== state 1) (== state 2)) (== state 4))
+        (return false)
+        (return true)
+      )
     )
   )
 )
+
+(class main inherits program
+  (method void main ()
+    (while (call super condition)
+      (print "Running...")
+    )
+  )
+)
+
     '''
     try:
         interpreter.run(script.splitlines())

@@ -387,3 +387,49 @@ class TestWhile(unittest.TestCase):
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output[0], 'hi')
+
+    def test_collatz(self):
+        brewin = string_to_program('''
+            (class program
+  (field int state 3)
+  (method bool condition ()
+    (begin
+    (let ((int temp 0))
+      (if (== (% state 2) temp)
+        (set temp (/ state 2))
+        (set temp (+ (* 3 state) 1))
+      )
+      (print temp)
+      (set state temp)
+    )
+      (if (| (| (== state 1) (== state 2)) (== state 4))
+        (return false)
+        (return true)
+      )
+    )
+  )
+)
+
+(class main inherits program
+  (method void main ()
+    (while (call super condition)
+      (print "Running...")
+    )
+  )
+)
+
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''10
+Running...
+5
+Running...
+16
+Running...
+8
+Running...
+4'''.splitlines())
