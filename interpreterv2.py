@@ -458,6 +458,11 @@ class Instruction:
                                     f"type {InterpreterBase.VOID_DEF}")
                 case class_name:
                     if grounds is None:
+                        if (beans.btype and beans.btype in self.classes
+                            and not self.classes[beans.btype]
+                                        .is_instance(self.btype)):
+                            raise TypeError(f"Class {beans.btype} not derived "
+                                            f"from {class_name}")
                         beans.btype = self.btype
                         return beans
                     try:
@@ -823,8 +828,8 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
             except TypeError as e:
                 error(ErrorType.TYPE_ERROR, str(e), statement[0].line_num)
         case [InterpreterBase.IF_DEF, expression, true_statement]:
-            condition = evaluate_expression(expression, me, super, classes, stack,
-                                            parameters, fields, error,
+            condition = evaluate_expression(expression, me, super, classes,
+                                            stack, parameters, fields, error,
                                             trace_output).value
             if type(condition) != bool:
                 error(ErrorType.TYPE_ERROR,
@@ -978,25 +983,29 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
+#check return type 
+
+(class student
+  (field int j 2)
+)
+
+(class fun
+ (field string hi "HI")
+)
+
 (class main
-    (method void main ()
-      (let ((int i 3))
-        (while (> i 0)
-          (begin
-          (let ((int i 3))
-            (while (> i 0)
-              (begin
-                (print i)
-                (set i (- i 1))
-              )
-            )
-          )
-          (set i (- i 1))
-          )
-        )
-      )
-    )
+ (field student s null)
+ (field int i 4)
+ (method void main ()
+  (begin
+   (call me test)
+   (print "this worked")
   )
+ )
+ (method fun test ()
+  (return s)
+ )
+)
     '''
     try:
         interpreter.run(script.splitlines())
