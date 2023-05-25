@@ -83,6 +83,14 @@ class Barista(InterpreterBase):
 
         for class_def in tokens:
             match class_def:
+                case [InterpreterBase.CLASS_DEF, name, *_] if isSWLN(name):
+                    self.classes[name] = None
+                case _:
+                    super().error(ErrorType.SYNTAX_ERROR,
+                                  f"Not a class: {class_def}")
+
+        for class_def in tokens:
+            match class_def:
                 case [InterpreterBase.CLASS_DEF, name,
                       InterpreterBase.INHERITS_DEF, parent_name,
                       *body] if isSWLN(name) and isSWLN(parent_name):
@@ -114,7 +122,8 @@ class Barista(InterpreterBase):
             super().error(ErrorType.TYPE_ERROR, "Main class not found")
 
         try:
-            cup_of_the_day.call_method(InterpreterBase.MAIN_FUNC_DEF)
+            cup_of_the_day.call_method(InterpreterBase.MAIN_FUNC_DEF,
+                                       first_call=True, me=cup_of_the_day)
         except KeyError:
             super().error(ErrorType.NAME_ERROR, "Main method not found",
                           cup_of_the_day.name.line_num)
@@ -133,10 +142,10 @@ class Barista(InterpreterBase):
                            .name.line_num))
 
     def init(self):
-        self.classes: dict[SWLN, Recipe] = {}
+        self.classes: dict[SWLN, Recipe | None] = {}
 
     def add_class(self, name: SWLN, parent_name: SWLN | None, body: list):
-        if name in self.classes:
+        if name in self.classes and self.classes[name]:
             super().error(ErrorType.TYPE_ERROR, f"Duplicate classes: {name}",
                           name.line_num)
         self.classes[name] = Recipe(name, parent_name, body, self.classes,
@@ -156,6 +165,7 @@ class Ingredient:
         self.error = error
         self.trace_output = trace_output
         self.btype = None
+        self.is_super = False
 
         match value:
             case grounds if not isSWLN(grounds):
@@ -273,8 +283,8 @@ class Recipe:
         return self.name == class_name or (self.parent and
                                            self.parent.is_instance(class_name))
 
-    def call_method(self, name: SWLN, *args: Ingredient,
-                    me: Union['Recipe', None] = None) -> Ingredient | None:
+    def call_method(self, name: SWLN, *args: Ingredient, first_call: bool,
+                    me: 'Recipe') -> Ingredient | None:
         """
         Throws KeyError if method not found
 
@@ -284,14 +294,18 @@ class Recipe:
 
         Throws TypeError on wrong type returned
         """
+        if self.trace_output and first_call:
+            debug(f"First call, setting me={self.name}")
         if self.parent:
             try:
-                return self.methods[name].call(*args, me=me if me else self)
+                return self.methods[name].call(*args,
+                                               me=self if first_call else me)
             except (KeyError, ValueError, NameError, TypeError):
                 pass
-            return self.parent.call_method(name, *args, me=me if me else self)
+            return self.parent.call_method(name, *args, first_call=False,
+                                           me=self if first_call else me)
         else:
-            return self.methods[name].call(*args, me=me if me else self)
+            return self.methods[name].call(*args, me=self if first_call else me)
 
 
 class Tin:
@@ -593,7 +607,9 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
             return Ingredient(me, error, trace_output)
         case InterpreterBase.SUPER_DEF:
             if super:
-                return Ingredient(super, error, trace_output)
+                beans = Ingredient(super, error, trace_output)
+                beans.is_super = True
+                return beans
             else:
                 error(ErrorType.TYPE_ERROR, "Class is not inherited",
                       expression.line_num)
@@ -612,9 +628,10 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
                       const.line_num)
         case [InterpreterBase.CALL_DEF, obj_expression, method, *arguments] \
                 if isSWLN(method):
-            cuppa = evaluate_expression(obj_expression, me, super, classes,
+            beans = evaluate_expression(obj_expression, me, super, classes,
                                         stack, parameters, fields, error,
-                                        trace_output).value
+                                        trace_output)
+            cuppa = beans.value
             if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
                       f"Trying to dereference nullptr", expression[0].line_num)
@@ -624,7 +641,9 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
                     *(evaluate_expression(argument, me, super, classes, stack,
                                           parameters, fields, error,
                                           trace_output)
-                      for argument in arguments)
+                      for argument in arguments),
+                    first_call=not beans.is_super,
+                    me=me
                 )
             except KeyError:
                 error(ErrorType.NAME_ERROR,
@@ -798,9 +817,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                     return latest_order
         case [InterpreterBase.CALL_DEF, expression, method, *arguments] \
                 if isSWLN(method):
-            cuppa = evaluate_expression(expression, me, super, classes, stack,
-                                        parameters, fields, error,
-                                        trace_output).value
+            beans = evaluate_expression(expression, me, super, classes, stack,
+                                        parameters, fields, error, trace_output)
+            cuppa = beans.value
             if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
                       f"Trying to dereference nullptr", statement[0].line_num)
@@ -810,7 +829,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                     *(evaluate_expression(argument, me, super, classes, stack,
                                           parameters, fields, error,
                                           trace_output)
-                      for argument in arguments)
+                      for argument in arguments),
+                    first_call=not beans.is_super,
+                    me=me
                 )
             except KeyError:
                 error(ErrorType.NAME_ERROR,
@@ -983,28 +1004,24 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-#check return type 
-
-(class student
-  (field int j 2)
+(class mammal (method person get_me () (return me))
 )
 
-(class fun
- (field string hi "HI")
+(class person inherits mammal)
+
+(class student inherits person
+  (method person get_me () (return (call super get_me)))
 )
 
 (class main
- (field student s null)
- (field int i 4)
- (method void main ()
-  (begin
-   (call me test)
-   (print "this worked")
+  (field student s null)
+  (field person x null)
+  (method void main ()
+    (begin
+      (set s (new student))
+      (print (== s (call s get_me)))
+    )
   )
- )
- (method fun test ()
-  (return s)
- )
 )
     '''
     try:
