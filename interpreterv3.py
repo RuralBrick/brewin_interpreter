@@ -242,7 +242,20 @@ class Recipe:
                     self.add_field(name, btype, value)
                 case [InterpreterBase.FIELD_DEF, btype, name
                       ] if isSWLN(btype) and isSWLN(name):
-                    pass # TODO: Add default value
+                    match btype:
+                        case InterpreterBase.INT_DEF:
+                            self.add_field(name, btype, 0)
+                        case InterpreterBase.STRING_DEF:
+                            self.add_field(name, btype, "")
+                        case InterpreterBase.BOOL_DEF:
+                            self.add_field(name, btype, False)
+                        case class_name if isVarType(class_name, self,
+                                                     self.classes):
+                            self.add_field(name, btype, None)
+                        case _:
+                            self.error(ErrorType.TYPE_ERROR,
+                                       f"Class {btype} not defined above",
+                                       btype.line_num)
                 case [InterpreterBase.METHOD_DEF, btype, name, params,
                       statement] if isSWLN(btype) and isSWLN(name):
                     self.add_method(name, btype, params, statement)
@@ -567,7 +580,7 @@ class Plate:
         self.trace_output = trace_output
         self.locals: dict[SWLN, Tin] = {}
 
-    def add_variable(self, name: SWLN, btype: SWLN, value: SWLN):
+    def add_variable(self, name: SWLN, btype: SWLN, value: BrewinTypes):
         if name in self.locals:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate local variable: {name}", name.line_num)
@@ -578,12 +591,12 @@ class Plate:
             beans = Ingredient(value, self.error, self.trace_output)
         except ValueError:
             self.error(ErrorType.SYNTAX_ERROR, f"Not a valid value: {value}",
-                       value.line_num)
+                       name.line_num)
         try:
             self.locals[name] = Tin(name, btype, beans, self.me, self.classes,
                                     self.error, self.trace_output)
         except TypeError as e:
-            self.error(ErrorType.TYPE_ERROR, str(e), value.line_num)
+            self.error(ErrorType.TYPE_ERROR, str(e), btype.line_num)
 
     def get_variable(self, name: SWLN) -> Tin | None:
         if self.trace_output:
@@ -1036,7 +1049,20 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                                                   and isSWLN(value)):
                         stack.add_variable(name, btype, value)
                     case [btype, name] if isSWLN(btype) and isSWLN(name):
-                        pass # TODO: Add default
+                        match btype:
+                            case InterpreterBase.INT_DEF:
+                                stack.add_variable(name, btype, 0)
+                            case InterpreterBase.STRING_DEF:
+                                stack.add_variable(name, btype, "")
+                            case InterpreterBase.BOOL_DEF:
+                                stack.add_variable(name, btype, False)
+                            case class_name if isVarType(class_name, me,
+                                                         classes):
+                                stack.add_variable(name, btype, None)
+                            case _:
+                                error(ErrorType.TYPE_ERROR,
+                                      f"Class {btype} not defined above",
+                                      btype.line_num)
                     case _:
                         error(ErrorType.SYNTAX_ERROR,
                               f"Malformed local variable: {var_def}",
