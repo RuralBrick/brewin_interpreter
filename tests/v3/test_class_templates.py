@@ -289,3 +289,78 @@ Animal's name: koda'''.splitlines())
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 13)
+
+    def test_unmatched_method(self):
+        brewin = string_to_program('''
+            (tclass Foo (field_type)
+  (method void chatter ((field_type x))
+    (call x quack)))
+
+(class Duck
+  (method void quack ()
+    (print "quack")))
+(class main
+  (field Foo@Duck t1)
+    (method void main ()
+      (begin
+        (set t1 (new Foo@Duck))
+        (call t1 chatter 5) #generates a name error
+)))
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
+        self.assertEqual(error_line, 13)
+
+    def test_int_method(self):
+        brewin = string_to_program('''
+            (tclass Foo (field_type)
+  (method void chatter ((field_type x))
+    (call x quack))) #error generated here
+
+(class Duck
+  (method void quack ()
+    (print "quack")))
+(class main
+  (field Foo@Duck t1)
+    (method void main ()
+      (begin
+        (set t1 (new Foo@int)) #changed type of t1
+        (call t1 chatter 5)
+#generates a type error, mismatch between Foo@Duck and Foo@int
+)))
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 12)
+
+    def test_add_incompatible(self):
+        brewin = string_to_program('''
+            (tclass Foo (field_type)
+  (method void compare_to_5 ((field_type x))
+    (return (== x 5)) #== operator applied to two incompatible types
+  )
+)
+
+(class Duck
+  (method void quack ()
+    (print "quack")))
+(class main
+  (field Foo@Duck t1)
+    (method void main ()
+      (begin
+        (set t1 (new Foo@Duck))
+        (call t1 compare_to_5 (new Duck)) #type error generated
+)))
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 3)
