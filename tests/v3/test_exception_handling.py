@@ -183,3 +183,42 @@ woot!'''.splitlines())
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output, '''foo'''.splitlines())
+
+    def test_exception_expression(self):
+        brewin = string_to_program('''
+            (class main
+  (method void main()
+    (try
+      (throw (+ "Hello," " World!"))
+      (print exception)
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''Hello, World!'''.splitlines())
+
+    def test_nested_throws(self):
+        brewin = string_to_program('''
+            (class main
+  (method string throws ()
+    (throw "World!")
+  )
+  (method void main()
+    (try
+      (throw (+ "Hello, " (call me throws)))
+      (print exception)
+    )
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''World!'''.splitlines())

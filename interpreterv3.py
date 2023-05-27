@@ -85,6 +85,9 @@ class Barista(InterpreterBase):
             match class_def:
                 case [InterpreterBase.CLASS_DEF, name, *_] if isSWLN(name):
                     self.classes[name] = None
+                case [InterpreterBase.TEMPLATE_CLASS_DEF, name, *_] \
+                        if isSWLN(name):
+                    self.classes[name] = None
                 case _:
                     super().error(ErrorType.SYNTAX_ERROR,
                                   f"Not a class: {class_def}")
@@ -97,6 +100,9 @@ class Barista(InterpreterBase):
                     self.add_class(name, parent_name, body)
                 case [InterpreterBase.CLASS_DEF, name, *body] if isSWLN(name):
                     self.add_class(name, None, body)
+                case [InterpreterBase.TEMPLATE_CLASS_DEF, name, field_types,
+                      *body] if isSWLN(name):
+                    pass # TODO: Add template
                 case _:
                     super().error(ErrorType.SYNTAX_ERROR,
                                   f"Not a class: {class_def}")
@@ -231,6 +237,9 @@ class Recipe:
                 case [InterpreterBase.FIELD_DEF, btype, name, value] \
                         if isSWLN(btype) and isSWLN(name) and isSWLN(value):
                     self.add_field(name, btype, value)
+                case [InterpreterBase.FIELD_DEF, btype, name] \
+                        if isSWLN(btype) and isSWLN(name):
+                    pass # TODO: Add default value
                 case [InterpreterBase.METHOD_DEF, btype, name, params,
                       statement] if isSWLN(btype) and isSWLN(name):
                     self.add_method(name, btype, params, statement)
@@ -613,6 +622,8 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
             else:
                 error(ErrorType.TYPE_ERROR, "Class is not inherited",
                       expression.line_num)
+        case InterpreterBase.EXCEPTION_VARIABLE_DEF:
+            pass # TODO: Return (maybe pass through parameters)
         case variable if isSWLN(variable) and stack\
                          and (can := stack.get_variable(variable)):
             return can.value
@@ -982,6 +993,8 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                     case [btype, name, value] \
                             if isSWLN(btype) and isSWLN(name) and isSWLN(value):
                         stack.add_variable(name, btype, value)
+                    case [btype, name] if isSWLN(btype) and isSWLN(name):
+                        pass # TODO: Add default
                     case _:
                         error(ErrorType.SYNTAX_ERROR,
                               f"Malformed local variable: {var_def}",
@@ -993,6 +1006,10 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                                                   error, trace_output)
                 if latest_order[0]:
                     return latest_order
+        case [InterpreterBase.THROW_DEF, exception_expression]:
+            pass # TODO: Implement
+        case [InterpreterBase.TRY_DEF, try_statement, catch_statement]:
+            pass # TODO: Implement (Pass exception into catch_statement)
         case _:
             error(ErrorType.SYNTAX_ERROR, f"Not a valid statement: {statement}")
     return False, None
@@ -1004,22 +1021,28 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(class mammal (method person get_me () (return me))
+(tclass my_generic_class (field_type)
+  (method void do_your_thing ((field_type x)) (call x talk))
 )
 
-(class person inherits mammal)
+(class duck
+ (method void talk () (print "quack"))
+)
 
-(class student inherits person
-  (method person get_me () (return (call super get_me)))
+(class person
+ (method void talk () (print "hello"))
 )
 
 (class main
-  (field student s null)
-  (field person x null)
   (method void main ()
-    (begin
-      (set s (new student))
-      (print (== s (call s get_me)))
+    (let ((my_generic_class@duck x null)
+          (my_generic_class@person y null))
+      # create a my_generic_class object that works with ducks
+      (set x (new my_generic_class@duck))
+      # create a my_generic_class object that works with persons
+      (set y (new my_generic_class@person))
+      (call x do_your_thing (new duck))
+      (call y do_your_thing (new person))
     )
   )
 )
