@@ -52,13 +52,14 @@ OutputFun = Callable[[str], None]
 ErrorFun = Callable[[ErrorType, str, int], None]
 BrewinTypes = Union[SWLN, int, str, bool, 'Recipe', None]
 isSWLN = lambda token: isinstance(token, SWLN)
-isVarType = (lambda token, me, classes:
-             token in {InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
-                       InterpreterBase.BOOL_DEF, me.name}.union(classes))
-isMethodType = (lambda token, me, classes:
-                token in {InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
-                          InterpreterBase.BOOL_DEF, InterpreterBase.VOID_DEF,
-                          me.name}.union(classes))
+T2L = (lambda template: template.split(InterpreterBase.TYPE_CONCAT_CHAR))
+isVarType = (lambda token, me, classes, templates: T2L(token)[0] in {
+    InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
+    InterpreterBase.BOOL_DEF, me.name}.union(classes).union(templates))
+isMethodType = (lambda token, me, classes, templates: T2L(token)[0] in {
+    InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
+    InterpreterBase.BOOL_DEF, InterpreterBase.VOID_DEF, me.name
+    }.union(classes).union(templates))
 debug = lambda *values: print(*values, file=sys.stderr, flush=True)
 
 
@@ -152,14 +153,16 @@ class Barista(InterpreterBase):
 
     def init(self):
         self.classes: dict[SWLN, Recipe | None] = {}
+        self.templates: dict = {} # HACK
 
     def add_class(self, name: SWLN, parent_name: SWLN | None, body: list):
         if name in self.classes and self.classes[name]:
             super().error(ErrorType.TYPE_ERROR, f"Duplicate classes: {name}",
                           name.line_num)
         self.classes[name] = Recipe(name, parent_name, body, self.classes,
-                                    super().get_input, super().output,
-                                    super().error, self.trace_output)
+                                    self.templates, super().get_input,
+                                    super().output, super().error,
+                                    self.trace_output)
 
 
 class Ingredient:
@@ -213,11 +216,12 @@ class Recipe:
     Class definition
     """
     def __init__(self, name: SWLN, parent_name: SWLN | None, body: list,
-                 classes: dict[SWLN, 'Recipe'], get_input: InputFun,
-                 output: OutputFun, error: ErrorFun, trace_output: bool
-                 ) -> None:
+                 classes: dict[SWLN, 'Recipe'], templates: dict, # HACK
+                 get_input: InputFun, output: OutputFun, error: ErrorFun,
+                 trace_output: bool) -> None:
         self.name = name
         self.classes = classes
+        self.templates = templates
         self.get_input = get_input
         self.output = output
         self.error = error
@@ -250,7 +254,8 @@ class Recipe:
                         case InterpreterBase.BOOL_DEF:
                             self.add_field(name, btype, False)
                         case class_name if isVarType(class_name, self,
-                                                     self.classes):
+                                                     self.classes,
+                                                     self.templates):
                             self.add_field(name, btype, None)
                         case _:
                             self.error(ErrorType.TYPE_ERROR,
@@ -265,8 +270,8 @@ class Recipe:
 
     def __copy__(self):
         tea = Recipe(self.name, self.parent.name if self.parent else None, [],
-                     self.classes, self.get_input, self.output, self.error,
-                     self.trace_output)
+                     self.classes, self.templates, self.get_input, self.output,
+                     self.error, self.trace_output)
         for name, bag in self.fields.items():
             tea.add_field(name, bag.btype, bag.value.value)
         for steep in self.methods.values():
@@ -289,7 +294,8 @@ class Recipe:
                        value.line_num)
         try:
             self.fields[name] = Tin(name, btype, beans, self, self.classes,
-                                    self.error, self.trace_output)
+                                    self.templates, self.error,
+                                    self.trace_output)
         except TypeError as e:
             self.error(ErrorType.TYPE_ERROR, str(e), value.line_num)
 
@@ -300,13 +306,14 @@ class Recipe:
                        f"Duplicate methods in {self.name}: {name}",
                        name.line_num)
         self.methods[name] = Instruction(name, btype, params, statement, self,
-                                         self.classes, self.fields,
-                                         self.get_input, self.output,
-                                         self.error, self.trace_output)
+                                         self.classes, self.templates,
+                                         self.fields, self.get_input,
+                                         self.output, self.error,
+                                         self.trace_output)
 
     def is_instance(self, class_name: SWLN) -> bool:
-        return self.name == class_name or (self.parent and
-                                           self.parent.is_instance(class_name))
+        return (self.name == class_name
+                or (self.parent and self.parent.is_instance(class_name)))
 
     def call_method(self, name: SWLN, *args: Ingredient, first_call: bool,
                     me: 'Recipe', exception: Ingredient | None
@@ -342,17 +349,18 @@ class Tin:
     Variable definition
     """
     def __init__(self, name: SWLN, btype: SWLN, boxed_value: Ingredient,
-                 me: Recipe, classes: dict[SWLN, Recipe], error: ErrorFun,
-                 trace_output: bool) -> None:
+                 me: Recipe, classes: dict[SWLN, Recipe], templates: dict, # HACK
+                 error: ErrorFun, trace_output: bool) -> None:
         """
         Throws TypeError on incompatible type
         """
         self.name = name
         self.classes = classes
+        self.templates = templates
         self.error = error
         self.trace_output = trace_output
 
-        if isVarType(btype, me, classes):
+        if isVarType(btype, me, classes, templates):
             self.btype = btype
         else:
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
@@ -384,6 +392,7 @@ class Tin:
                     self.value = boxed_value
                     return
             case class_name:
+                # TODO: Template checks
                 if grounds is None:
                     if (boxed_value.btype and boxed_value.btype in self.classes
                         and not self.classes[boxed_value.btype]
@@ -425,7 +434,7 @@ class Instruction:
     Method definition
     """
     def __init__(self, name: SWLN, btype: SWLN, params: dict[SWLN, SWLN] | Any,
-                 statement, me: Recipe, classes: dict[SWLN, Recipe],
+                 statement, me: Recipe, classes: dict[SWLN, Recipe], templates: dict, # HACK
                  fields: dict[SWLN, Tin], get_input: InputFun,
                  output: OutputFun, error: ErrorFun, trace_output: bool
                  ) -> None:
@@ -433,6 +442,7 @@ class Instruction:
         self.statement = statement
         self.me = me
         self.classes = classes
+        self.templates = templates
         self.fields = fields
         self.get_input = get_input
         self.output = output
@@ -440,7 +450,7 @@ class Instruction:
         self.trace_output = trace_output
         self.formals: dict[SWLN, SWLN] = {}
 
-        if isMethodType(btype, me, classes):
+        if isMethodType(btype, me, classes, templates):
             self.btype = btype
         else:
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
@@ -477,10 +487,10 @@ class Instruction:
 
         is_return, beans = evaluate_statement(self.statement, me,
                                               self.me.parent, self.classes,
-                                              exception, None, parameters,
-                                              self.fields, self.get_input,
-                                              self.output, self.error,
-                                              self.trace_output)
+                                              self.templates, exception, None,
+                                              parameters, self.fields,
+                                              self.get_input, self.output,
+                                              self.error, self.trace_output)
         if is_return and beans:
             grounds = beans.value
             if self.trace_output:
@@ -502,6 +512,7 @@ class Instruction:
                     raise TypeError(f"Cannot return any value from method of "
                                     f"type {InterpreterBase.VOID_DEF}")
                 case class_name:
+                    # TODO: Template checks
                     if grounds is None:
                         if (beans.btype and beans.btype in self.classes
                             and not self.classes[beans.btype]
@@ -560,7 +571,7 @@ class Instruction:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate parameters in {self.name}: name",
                        name.line_num)
-        if not isVarType(btype, self.me, self.classes):
+        if not isVarType(btype, self.me, self.classes, self.templates):
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
                        btype.line_num)
         self.formals[name] = btype
@@ -571,11 +582,12 @@ class Plate:
     Stack frame
     """
     def __init__(self, stack: Union['Plate', None], me: Recipe,
-                 classes: dict[SWLN, Recipe], error: ErrorFun,
-                 trace_output: bool) -> None:
+                 classes: dict[SWLN, Recipe], templates: dict, # HACK
+                 error: ErrorFun, trace_output: bool) -> None:
         self.under = stack
         self.me = me
         self.classes = classes
+        self.templates = templates
         self.error = error
         self.trace_output = trace_output
         self.locals: dict[SWLN, Tin] = {}
@@ -584,7 +596,7 @@ class Plate:
         if name in self.locals:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate local variable: {name}", name.line_num)
-        if not isVarType(btype, self.me, self.classes):
+        if not isVarType(btype, self.me, self.classes, self.templates):
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
                        btype.line_num)
         try:
@@ -594,7 +606,8 @@ class Plate:
                        name.line_num)
         try:
             self.locals[name] = Tin(name, btype, beans, self.me, self.classes,
-                                    self.error, self.trace_output)
+                                    self.templates, self.error,
+                                    self.trace_output)
         except TypeError as e:
             self.error(ErrorType.TYPE_ERROR, str(e), btype.line_num)
 
@@ -632,7 +645,7 @@ class Complaint(Exception):
 
 
 def evaluate_expression(expression, me: Recipe, super: Recipe | None,
-                        classes: dict[SWLN, Recipe],
+                        classes: dict[SWLN, Recipe], templates: dict, # HACK
                         exception: Ingredient | None, stack: Plate | None,
                         parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
                         error: ErrorFun, trace_output: bool) -> Ingredient:
@@ -686,8 +699,8 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
         case [InterpreterBase.CALL_DEF, obj_expression, method, *arguments
               ] if isSWLN(method):
             beans = evaluate_expression(obj_expression, me, super, classes,
-                                        exception, stack, parameters, fields,
-                                        error, trace_output)
+                                        templates, exception, stack, parameters,
+                                        fields, error, trace_output)
             cuppa = beans.value
             if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
@@ -696,8 +709,9 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
                 service = cuppa.call_method(
                     method,
                     *(evaluate_expression(argument, me, super, classes,
-                                          exception, stack, parameters, fields,
-                                          error, trace_output)
+                                          templates, exception, stack,
+                                          parameters, fields, error,
+                                          trace_output)
                       for argument in arguments),
                     first_call=not beans.is_super,
                     me=me,
@@ -725,16 +739,22 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
             else:
                 return service
         case [InterpreterBase.NEW_DEF, name] if isSWLN(name):
-            try:
-                cuppa = classes[name]
-            except KeyError:
-                error(ErrorType.TYPE_ERROR, f"Could not find class: {name}",
-                      expression[0].line_num)
+            name, *types = T2L(name)
+            if types:
+                # TODO: tclass
+                cuppa = None
+            else:
+                try:
+                    cuppa = classes[name]
+                except KeyError:
+                    error(ErrorType.TYPE_ERROR, f"Could not find class: {name}",
+                          expression[0].line_num)
             return Ingredient(copy.copy(cuppa), error, trace_output)
         case [unary_operator, sub_expression] if isSWLN(unary_operator):
             grounds = evaluate_expression(sub_expression, me, super, classes,
-                                          exception, stack, parameters, fields,
-                                          error, trace_output).value
+                                          templates, exception, stack,
+                                          parameters, fields, error,
+                                          trace_output).value
             if trace_output:
                 debug(f"{unary_operator=} with {grounds=}:{type(grounds)}")
             match unary_operator:
@@ -751,12 +771,12 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
         case [binary_operator, left_expression, right_expression
               ] if isSWLN(binary_operator):
             beans = evaluate_expression(left_expression, me, super, classes,
-                                        exception, stack, parameters, fields,
-                                        error, trace_output)
+                                        templates, exception, stack, parameters,
+                                        fields, error, trace_output)
             grounds = beans.value
             milk = evaluate_expression(right_expression, me, super, classes,
-                                       exception, stack, parameters, fields,
-                                       error, trace_output)
+                                       templates, exception, stack, parameters,
+                                       fields, error, trace_output)
             cream = milk.value
             if trace_output:
                 debug(f"{binary_operator=} with {grounds=}:{type(grounds)} and "
@@ -849,7 +869,7 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
 
 
 def evaluate_statement(statement, me: Recipe, super: Recipe | None,
-                       classes: dict[SWLN, Recipe],
+                       classes: dict[SWLN, Recipe], templates: dict, # HACK
                        exception: Ingredient | None, stack: Plate | None,
                        parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
                        get_input: InputFun, output: OutputFun, error: ErrorFun,
@@ -869,16 +889,17 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
         case [InterpreterBase.BEGIN_DEF, *sub_statements] if sub_statements:
             for sub_statement in sub_statements:
                 latest_order = evaluate_statement(sub_statement, me, super,
-                                                  classes, exception, stack,
-                                                  parameters, fields, get_input,
-                                                  output, error, trace_output)
+                                                  classes, templates, exception,
+                                                  stack, parameters, fields,
+                                                  get_input, output, error,
+                                                  trace_output)
                 if latest_order[0]:
                     return latest_order
         case [InterpreterBase.CALL_DEF, expression, method, *arguments
               ] if isSWLN(method):
             beans = evaluate_expression(expression, me, super, classes,
-                                        exception, stack, parameters, fields,
-                                        error, trace_output)
+                                        templates, exception, stack, parameters,
+                                        fields, error, trace_output)
             cuppa = beans.value
             if cuppa is None:
                 error(ErrorType.FAULT_ERROR,
@@ -887,8 +908,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                 cuppa.call_method(
                     method,
                     *(evaluate_expression(argument, me, super, classes,
-                                          exception, stack, parameters, fields,
-                                          error, trace_output)
+                                          templates, exception, stack,
+                                          parameters, fields, error,
+                                          trace_output)
                       for argument in arguments),
                     first_call=not beans.is_super,
                     me=me,
@@ -911,40 +933,42 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                 error(ErrorType.TYPE_ERROR, str(e), statement[0].line_num)
         case [InterpreterBase.IF_DEF, expression, true_statement]:
             condition = evaluate_expression(expression, me, super, classes,
-                                            exception, stack, parameters,
-                                            fields, error, trace_output).value
+                                            templates, exception, stack,
+                                            parameters, fields, error,
+                                            trace_output).value
             if type(condition) != bool:
                 error(ErrorType.TYPE_ERROR,
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
                 order = evaluate_statement(true_statement, me, super, classes,
-                                           exception, stack, parameters, fields,
-                                           get_input, output, error,
-                                           trace_output)
+                                           templates, exception, stack,
+                                           parameters, fields, get_input,
+                                           output, error, trace_output)
                 if order[0]:
                     return order
         case [InterpreterBase.IF_DEF, expression, true_statement,
               false_statement]:
             condition = evaluate_expression(expression, me, super, classes,
-                                            exception, stack, parameters,
-                                            fields, error, trace_output).value
+                                            templates, exception, stack,
+                                            parameters, fields, error,
+                                            trace_output).value
             if type(condition) != bool:
                 error(ErrorType.TYPE_ERROR,
                       "Condition did not evaluate to boolean",
                       statement[0].line_num)
             if condition:
                 order = evaluate_statement(true_statement, me, super, classes,
-                                           exception, stack, parameters, fields,
-                                           get_input, output, error,
-                                           trace_output)
+                                           templates, exception, stack,
+                                           parameters, fields, get_input,
+                                           output, error, trace_output)
                 if order[0]:
                     return order
             else:
                 order = evaluate_statement(false_statement, me, super, classes,
-                                           exception, stack, parameters, fields,
-                                           get_input, output, error,
-                                           trace_output)
+                                           templates, exception, stack,
+                                           parameters, fields, get_input,
+                                           output, error, trace_output)
                 if order[0]:
                     return order
         case [InterpreterBase.INPUT_INT_DEF, variable] if isSWLN(variable):
@@ -992,8 +1016,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                 ''.join(
                     str(
                         evaluate_expression(argument, me, super, classes,
-                                            exception, stack, parameters,
-                                            fields, error, trace_output)
+                                            templates, exception, stack,
+                                            parameters, fields, error,
+                                            trace_output)
                     )
                     for argument in arguments
                 )
@@ -1002,8 +1027,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
             return True, None
         case [InterpreterBase.RETURN_DEF, expression]:
             return True, evaluate_expression(expression, me, super, classes,
-                                             exception, stack, parameters,
-                                             fields, error, trace_output)
+                                             templates, exception, stack,
+                                             parameters, fields, error,
+                                             trace_output)
         case [InterpreterBase.SET_DEF, variable, expression
               ] if isSWLN(variable):
             if stack and (can := stack.get_variable(variable)):
@@ -1016,8 +1042,8 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                 error(ErrorType.NAME_ERROR, f"Variable not found: {variable}",
                       variable.line_num)
             beans = evaluate_expression(expression, me, super, classes,
-                                        exception, stack, parameters, fields,
-                                        error, trace_output)
+                                        templates, exception, stack, parameters,
+                                        fields, error, trace_output)
             try:
                 can.set_value(beans)
             except TypeError as e:
@@ -1025,9 +1051,9 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
         case [InterpreterBase.WHILE_DEF, expression, statement_to_run]:
             while True:
                 condition = evaluate_expression(expression, me, super, classes,
-                                                exception, stack, parameters,
-                                                fields, error, trace_output
-                                                ).value
+                                                templates, exception, stack,
+                                                parameters, fields, error,
+                                                trace_output).value
                 if type(condition) != bool:
                     error(ErrorType.TYPE_ERROR,
                           "Condition did not evaluate to boolean",
@@ -1035,14 +1061,15 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                 if not condition:
                     break
                 latest_order = evaluate_statement(statement_to_run, me, super,
-                                                  classes, exception, stack,
-                                                  parameters, fields, get_input,
-                                                  output, error, trace_output)
+                                                  classes, templates, exception,
+                                                  stack, parameters, fields,
+                                                  get_input, output, error,
+                                                  trace_output)
                 if latest_order[0]:
                     return latest_order
         case [InterpreterBase.LET_DEF, var_defs, *sub_statements
               ] if sub_statements:
-            stack = Plate(stack, me, classes, error, trace_output)
+            stack = Plate(stack, me, classes, templates, error, trace_output)
             for var_def in var_defs:
                 match var_def:
                     case [btype, name, value] if (isSWLN(btype) and isSWLN(name)
@@ -1057,7 +1084,7 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                             case InterpreterBase.BOOL_DEF:
                                 stack.add_variable(name, btype, False)
                             case class_name if isVarType(class_name, me,
-                                                         classes):
+                                                         classes, templates):
                                 stack.add_variable(name, btype, None)
                             case _:
                                 error(ErrorType.TYPE_ERROR,
@@ -1069,32 +1096,34 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                               statement[0].line_num)
             for sub_statement in sub_statements:
                 latest_order = evaluate_statement(sub_statement, me, super,
-                                                  classes, exception, stack,
-                                                  parameters, fields, get_input,
-                                                  output, error, trace_output)
+                                                  classes, templates, exception,
+                                                  stack, parameters, fields,
+                                                  get_input, output, error,
+                                                  trace_output)
                 if latest_order[0]:
                     return latest_order
         case [InterpreterBase.THROW_DEF, exception_expression]:
             try:
                 raise Complaint(evaluate_expression(exception_expression, me,
-                                                    super, classes, exception,
-                                                    stack, parameters, fields,
-                                                    error, trace_output))
+                                                    super, classes, templates,
+                                                    exception, stack,
+                                                    parameters, fields, error,
+                                                    trace_output))
             except ValueError as e:
                 error(ErrorType.TYPE_ERROR, str(e), statement[0].line_num)
         case [InterpreterBase.TRY_DEF, try_statement, catch_statement]:
             try:
                 order = evaluate_statement(try_statement, me, super, classes,
-                                           exception, stack, parameters, fields,
-                                           get_input, output, error,
-                                           trace_output)
+                                           templates, exception, stack,
+                                           parameters, fields, get_input,
+                                           output, error, trace_output)
                 if order[0]:
                     return order
             except Complaint as e:
                 order = evaluate_statement(catch_statement, me, super, classes,
-                                           e.message, stack, parameters, fields,
-                                           get_input, output, error,
-                                           trace_output)
+                                           templates, e.message, stack,
+                                           parameters, fields, get_input,
+                                           output, error, trace_output)
                 if order[0]:
                     return order
         case _:
