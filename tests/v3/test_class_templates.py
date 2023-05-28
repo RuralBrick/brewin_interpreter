@@ -124,7 +124,7 @@ Animal's name: koda'''.splitlines())
         self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
 
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
-        self.assertIs(error_type, ErrorType.NAME_ERRORa)
+        self.assertIs(error_type, ErrorType.NAME_ERROR)
         self.assertEqual(error_line, 24)
 
     def test_incompatible(self):
@@ -364,3 +364,22 @@ Animal's name: koda'''.splitlines())
         error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
         self.assertIs(error_type, ErrorType.TYPE_ERROR)
         self.assertEqual(error_line, 3)
+
+    def test_bad_argument(self):
+        brewin = string_to_program('''
+            (tclass temp (first)
+  (method first give () (return))
+)
+
+(class main
+  (method void main()
+    (print (new temp@est))
+  )
+)
+        ''')
+
+        self.assertRaises(RuntimeError, self.deaf_interpreter.run, brewin)
+
+        error_type, error_line = self.deaf_interpreter.get_error_type_and_line()
+        self.assertIs(error_type, ErrorType.TYPE_ERROR)
+        self.assertEqual(error_line, 7)

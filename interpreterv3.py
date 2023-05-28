@@ -10,6 +10,8 @@ cuppa - object;
 tea - new object/copy of class definition;
 cup_of_the_day - main object;
 
+Formula - template definition;
+
 Instruction - method;
 brew - object's method;
 steep - copy of method;
@@ -52,14 +54,15 @@ OutputFun = Callable[[str], None]
 ErrorFun = Callable[[ErrorType, str, int], None]
 BrewinTypes = Union[SWLN, int, str, bool, 'Recipe', None]
 isSWLN = lambda token: isinstance(token, SWLN)
-T2L = (lambda template: template.split(InterpreterBase.TYPE_CONCAT_CHAR))
-isVarType = (lambda token, me, classes, templates: T2L(token)[0] in {
-    InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
-    InterpreterBase.BOOL_DEF, me.name}.union(classes).union(templates))
-isMethodType = (lambda token, me, classes, templates: T2L(token)[0] in {
-    InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
-    InterpreterBase.BOOL_DEF, InterpreterBase.VOID_DEF, me.name
-    }.union(classes).union(templates))
+T2L = (lambda template: [SWLN(btype, template.line_num) for btype
+                         in template.split(InterpreterBase.TYPE_CONCAT_CHAR)])
+isVarType = (lambda token, me, classes:
+             token in {InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
+                       InterpreterBase.BOOL_DEF, me.name}.union(classes))
+isMethodType = (lambda token, me, classes:
+                token in {InterpreterBase.INT_DEF, InterpreterBase.STRING_DEF,
+                          InterpreterBase.BOOL_DEF, InterpreterBase.VOID_DEF,
+                          me.name}.union(classes))
 debug = lambda *values: print(*values, file=sys.stderr, flush=True)
 
 
@@ -90,7 +93,7 @@ class Barista(InterpreterBase):
                     self.classes[name] = None
                 case [InterpreterBase.TEMPLATE_CLASS_DEF, name, *_
                       ] if isSWLN(name):
-                    self.classes[name] = None
+                    self.templates[name] = None
                 case _:
                     super().error(ErrorType.SYNTAX_ERROR,
                                   f"Not a class: {class_def}")
@@ -104,8 +107,8 @@ class Barista(InterpreterBase):
                 case [InterpreterBase.CLASS_DEF, name, *body] if isSWLN(name):
                     self.add_class(name, None, body)
                 case [InterpreterBase.TEMPLATE_CLASS_DEF, name, field_types,
-                      *body] if isSWLN(name):
-                    pass # TODO: Add template
+                      *body] if isSWLN(name) and all(map(isSWLN, field_types)):
+                    self.add_template(name, field_types, body)
                 case _:
                     super().error(ErrorType.SYNTAX_ERROR,
                                   f"Not a class: {class_def}")
@@ -153,7 +156,7 @@ class Barista(InterpreterBase):
 
     def init(self):
         self.classes: dict[SWLN, Recipe | None] = {}
-        self.templates: dict = {} # HACK
+        self.templates: dict[SWLN, Formula | None] = {}
 
     def add_class(self, name: SWLN, parent_name: SWLN | None, body: list):
         if name in self.classes and self.classes[name]:
@@ -163,6 +166,15 @@ class Barista(InterpreterBase):
                                     self.templates, super().get_input,
                                     super().output, super().error,
                                     self.trace_output)
+
+    def add_template(self, name: SWLN, field_types: list[SWLN], body: list):
+        if name in self.templates and self.templates[name]:
+            super().error(ErrorType.TYPE_ERROR, f"Duplicate templates: {name}",
+                          name.line_num)
+        self.templates[name] = Formula(name, field_types, body, self.classes,
+                                       self.templates, super().get_input,
+                                       super().output, super().error,
+                                       self.trace_output)
 
 
 class Ingredient:
@@ -216,9 +228,10 @@ class Recipe:
     Class definition
     """
     def __init__(self, name: SWLN, parent_name: SWLN | None, body: list,
-                 classes: dict[SWLN, 'Recipe'], templates: dict, # HACK
-                 get_input: InputFun, output: OutputFun, error: ErrorFun,
-                 trace_output: bool) -> None:
+                 classes: dict[SWLN, 'Recipe'],
+                 templates: dict[SWLN, 'Formula'], get_input: InputFun,
+                 output: OutputFun, error: ErrorFun, trace_output: bool
+                 ) -> None:
         self.name = name
         self.classes = classes
         self.templates = templates
@@ -246,6 +259,7 @@ class Recipe:
                     self.add_field(name, btype, value)
                 case [InterpreterBase.FIELD_DEF, btype, name
                       ] if isSWLN(btype) and isSWLN(name):
+                    temp_name, *types = T2L(btype)
                     match btype:
                         case InterpreterBase.INT_DEF:
                             self.add_field(name, btype, 0)
@@ -254,8 +268,16 @@ class Recipe:
                         case InterpreterBase.BOOL_DEF:
                             self.add_field(name, btype, False)
                         case class_name if isVarType(class_name, self,
-                                                     self.classes,
-                                                     self.templates):
+                                                     self.classes):
+                            self.add_field(name, btype, None)
+                        case class_name if temp_name in self.templates:
+                            try:
+                                self.templates[temp_name].compile(*types)
+                            except ValueError:
+                                self.error(ErrorType.TYPE_ERROR,
+                                           f"Template created with wrong "
+                                           f"number of types: {temp_name}",
+                                           temp_name.line_num)
                             self.add_field(name, btype, None)
                         case _:
                             self.error(ErrorType.TYPE_ERROR,
@@ -344,13 +366,73 @@ class Recipe:
                                            exception=exception)
 
 
+class Formula():
+    """
+    Template definition
+    """
+    def __init__(self, name: SWLN, field_types: list[SWLN], body: list,
+                 classes: dict[SWLN, Recipe], templates: dict[SWLN, 'Formula'],
+                 get_input: InputFun, output: OutputFun, error: ErrorFun,
+                 trace_output: bool) -> None:
+        self.name = name
+        self.field_types = field_types
+        self.body = body
+        self.classes = classes
+        self.templates = templates
+        self.get_input = get_input
+        self.output = output
+        self.error = error
+        self.trace_output = trace_output
+
+    def substitute_types(self, body, type_map: dict[SWLN, SWLN]):
+        if isSWLN(body):
+            if body in type_map:
+                return type_map[body]
+            else:
+                return body
+        return [ self.substitute_types(part, type_map) for part in body ]
+
+    def compile(self, *types: SWLN) -> Recipe:
+        """
+        Throws ValueError on wrong number of types
+        """
+        name = SWLN(InterpreterBase.TYPE_CONCAT_CHAR.join([self.name, *types]),
+                    self.name.line_num)
+        if name in self.classes:
+            return self.classes[name]
+        if self.trace_output:
+            debug(f"Compiling {name}")
+        if self.trace_output:
+            debug(f"{self.name} got {types=}")
+        for btype in types:
+            if self.trace_output:
+                debug(f"{self.name} got type {btype}")
+            if not isVarType(btype, self, self.classes):
+                self.error(ErrorType.TYPE_ERROR,
+                           f"Class {btype} not defined above", btype.line_num)
+        type_map = {field_type: btype for field_type, btype
+                    in zip(self.field_types, types, strict=True)}
+        if self.trace_output:
+            debug(f"{self.name}@{'@'.join(types)} type map: {type_map}")
+        body = self.substitute_types(self.body, type_map)
+        if self.trace_output:
+            debug(f"Body parsed from {self.name}@{'@'.join(types)}:")
+            debug(pprint.pformat(body))
+        cuppa = Recipe(name, None, body, self.classes, self.templates,
+                       self.get_input, self.output, self.error,
+                       self.trace_output)
+        self.classes[name] = cuppa
+        return cuppa
+
+
 class Tin:
     """
     Variable definition
     """
     def __init__(self, name: SWLN, btype: SWLN, boxed_value: Ingredient,
-                 me: Recipe, classes: dict[SWLN, Recipe], templates: dict, # HACK
-                 error: ErrorFun, trace_output: bool) -> None:
+                 me: Recipe, classes: dict[SWLN, Recipe],
+                 templates: dict[SWLN, Formula], error: ErrorFun,
+                 trace_output: bool) -> None:
         """
         Throws TypeError on incompatible type
         """
@@ -360,11 +442,30 @@ class Tin:
         self.error = error
         self.trace_output = trace_output
 
-        if isVarType(btype, me, classes, templates):
+        temp_name, *types = T2L(btype)
+
+        if self.trace_output:
+            debug(f"Tin checking {btype=}")
+
+        if isVarType(btype, me, classes):
+            self.btype = btype
+        elif temp_name in templates:
+            try:
+                templates[temp_name].compile(*types)
+                if self.trace_output:
+                    debug(f"Tin compiled {btype=}")
+            except ValueError:
+                self.error(ErrorType.TYPE_ERROR,
+                           f"Template created with wrong number of types: "
+                           f"{temp_name}",
+                           temp_name.line_num)
             self.btype = btype
         else:
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
                        btype.line_num)
+
+        if self.trace_output:
+            debug(f"Tin {self.name} declared {self.btype}")
 
         self.set_value(boxed_value)
 
@@ -392,7 +493,6 @@ class Tin:
                     self.value = boxed_value
                     return
             case class_name:
-                # TODO: Template checks
                 if grounds is None:
                     if (boxed_value.btype and boxed_value.btype in self.classes
                         and not self.classes[boxed_value.btype]
@@ -434,10 +534,10 @@ class Instruction:
     Method definition
     """
     def __init__(self, name: SWLN, btype: SWLN, params: dict[SWLN, SWLN] | Any,
-                 statement, me: Recipe, classes: dict[SWLN, Recipe], templates: dict, # HACK
-                 fields: dict[SWLN, Tin], get_input: InputFun,
-                 output: OutputFun, error: ErrorFun, trace_output: bool
-                 ) -> None:
+                 statement, me: Recipe, classes: dict[SWLN, Recipe],
+                 templates: dict[SWLN, Formula], fields: dict[SWLN, Tin],
+                 get_input: InputFun, output: OutputFun, error: ErrorFun,
+                 trace_output: bool) -> None:
         self.name = name
         self.statement = statement
         self.me = me
@@ -450,7 +550,18 @@ class Instruction:
         self.trace_output = trace_output
         self.formals: dict[SWLN, SWLN] = {}
 
-        if isMethodType(btype, me, classes, templates):
+        temp_name, *types = T2L(btype)
+
+        if isMethodType(btype, me, classes):
+            self.btype = btype
+        elif temp_name in templates:
+            try:
+                templates[temp_name].compile(*types)
+            except ValueError:
+                self.error(ErrorType.TYPE_ERROR,
+                           f"Template created with wrong number of types: "
+                           f"{temp_name}",
+                           temp_name.line_num)
             self.btype = btype
         else:
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
@@ -478,7 +589,7 @@ class Instruction:
         """
         try:
             parameters = {formal: Tin(formal, btype, actual, me,
-                                      self.classes, self.error,
+                                      self.classes, self.templates, self.error,
                                       self.trace_output)
                           for (formal, btype), actual
                           in zip(self.formals.items(), args, strict=True)}
@@ -512,7 +623,6 @@ class Instruction:
                     raise TypeError(f"Cannot return any value from method of "
                                     f"type {InterpreterBase.VOID_DEF}")
                 case class_name:
-                    # TODO: Template checks
                     if grounds is None:
                         if (beans.btype and beans.btype in self.classes
                             and not self.classes[beans.btype]
@@ -571,10 +681,21 @@ class Instruction:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate parameters in {self.name}: name",
                        name.line_num)
-        if not isVarType(btype, self.me, self.classes, self.templates):
+        temp_name, *types = T2L(btype)
+        if isVarType(btype, self.me, self.classes):
+            self.formals[name] = btype
+        elif temp_name in self.templates:
+            try:
+                self.templates[temp_name].compile(*types)
+            except ValueError:
+                self.error(ErrorType.TYPE_ERROR,
+                           f"Template created with wrong number of types: "
+                           f"{temp_name}",
+                           temp_name.line_num)
+            self.formals[name] = btype
+        else:
             self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
                        btype.line_num)
-        self.formals[name] = btype
 
 
 class Plate:
@@ -582,7 +703,7 @@ class Plate:
     Stack frame
     """
     def __init__(self, stack: Union['Plate', None], me: Recipe,
-                 classes: dict[SWLN, Recipe], templates: dict, # HACK
+                 classes: dict[SWLN, Recipe], templates: dict[SWLN, Formula],
                  error: ErrorFun, trace_output: bool) -> None:
         self.under = stack
         self.me = me
@@ -593,14 +714,15 @@ class Plate:
         self.locals: dict[SWLN, Tin] = {}
 
     def add_variable(self, name: SWLN, btype: SWLN, value: BrewinTypes):
+        if self.trace_output:
+            debug(f"Plate {value}")
         if name in self.locals:
             self.error(ErrorType.NAME_ERROR,
                        f"Duplicate local variable: {name}", name.line_num)
-        if not isVarType(btype, self.me, self.classes, self.templates):
-            self.error(ErrorType.TYPE_ERROR, f"Class {btype} not defined above",
-                       btype.line_num)
         try:
             beans = Ingredient(value, self.error, self.trace_output)
+            if self.trace_output:
+                debug(f"Prepped {beans}")
         except ValueError:
             self.error(ErrorType.SYNTAX_ERROR, f"Not a valid value: {value}",
                        name.line_num)
@@ -608,6 +730,8 @@ class Plate:
             self.locals[name] = Tin(name, btype, beans, self.me, self.classes,
                                     self.templates, self.error,
                                     self.trace_output)
+            if self.trace_output:
+                debug(f"Plated {self.locals[name]}")
         except TypeError as e:
             self.error(ErrorType.TYPE_ERROR, str(e), btype.line_num)
 
@@ -645,7 +769,8 @@ class Complaint(Exception):
 
 
 def evaluate_expression(expression, me: Recipe, super: Recipe | None,
-                        classes: dict[SWLN, Recipe], templates: dict, # HACK
+                        classes: dict[SWLN, Recipe],
+                        templates: dict[SWLN, Formula],
                         exception: Ingredient | None, stack: Plate | None,
                         parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
                         error: ErrorFun, trace_output: bool) -> Ingredient:
@@ -740,15 +865,28 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
                 return service
         case [InterpreterBase.NEW_DEF, name] if isSWLN(name):
             name, *types = T2L(name)
+            if trace_output:
+                debug(f"New with {name=}, {types=}")
             if types:
-                # TODO: tclass
-                cuppa = None
+                try:
+                    cuppa = templates[name].compile(*types)
+                except KeyError:
+                    error(ErrorType.TYPE_ERROR,
+                          f"Could not find template: {name}",
+                          expression[0].line_num)
+                except ValueError:
+                    error(ErrorType.TYPE_ERROR,
+                          f"Template created with wrong number of types: "
+                          f"{name}",
+                          name.line_num)
             else:
                 try:
                     cuppa = classes[name]
                 except KeyError:
                     error(ErrorType.TYPE_ERROR, f"Could not find class: {name}",
                           expression[0].line_num)
+            if trace_output:
+                debug(f"Object {cuppa} generated")
             return Ingredient(copy.copy(cuppa), error, trace_output)
         case [unary_operator, sub_expression] if isSWLN(unary_operator):
             grounds = evaluate_expression(sub_expression, me, super, classes,
@@ -869,7 +1007,8 @@ def evaluate_expression(expression, me: Recipe, super: Recipe | None,
 
 
 def evaluate_statement(statement, me: Recipe, super: Recipe | None,
-                       classes: dict[SWLN, Recipe], templates: dict, # HACK
+                       classes: dict[SWLN, Recipe],
+                       templates: dict[SWLN, Formula],
                        exception: Ingredient | None, stack: Plate | None,
                        parameters: dict[SWLN, Tin], fields: dict[SWLN, Tin],
                        get_input: InputFun, output: OutputFun, error: ErrorFun,
@@ -1071,11 +1210,14 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
               ] if sub_statements:
             stack = Plate(stack, me, classes, templates, error, trace_output)
             for var_def in var_defs:
+                if trace_output:
+                    debug(f"Let {var_def=}")
                 match var_def:
                     case [btype, name, value] if (isSWLN(btype) and isSWLN(name)
                                                   and isSWLN(value)):
                         stack.add_variable(name, btype, value)
                     case [btype, name] if isSWLN(btype) and isSWLN(name):
+                        temp_name, *types = T2L(btype)
                         match btype:
                             case InterpreterBase.INT_DEF:
                                 stack.add_variable(name, btype, 0)
@@ -1084,7 +1226,16 @@ def evaluate_statement(statement, me: Recipe, super: Recipe | None,
                             case InterpreterBase.BOOL_DEF:
                                 stack.add_variable(name, btype, False)
                             case class_name if isVarType(class_name, me,
-                                                         classes, templates):
+                                                         classes):
+                                stack.add_variable(name, btype, None)
+                            case class_name if temp_name in templates:
+                                try:
+                                    templates[temp_name].compile(*types)
+                                except ValueError:
+                                    error(ErrorType.TYPE_ERROR,
+                                          f"Template created with wrong number "
+                                          f"of types: {temp_name}",
+                                          temp_name.line_num)
                                 stack.add_variable(name, btype, None)
                             case _:
                                 error(ErrorType.TYPE_ERROR,
