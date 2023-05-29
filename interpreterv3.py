@@ -388,6 +388,13 @@ class Formula():
         if isSWLN(body):
             if body in type_map:
                 return type_map[body]
+            elif len(l := T2L(body)) > 1:
+                return SWLN(
+                    InterpreterBase.TYPE_CONCAT_CHAR.join(
+                        self.substitute_types(t, type_map) for t in l
+                    ),
+                    body.line_num
+                )
             else:
                 return body
         return [ self.substitute_types(part, type_map) for part in body ]
@@ -1288,28 +1295,16 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(tclass my_generic_class (field_type)
-  (method void do_your_thing ((field_type x)) (call x talk))
-)
-
-(class duck
- (method void talk () (print "quack"))
-)
-
-(class person
- (method void talk () (print "hello"))
+(tclass foo (field_type)
+  (method foo@field_type get_me () (return me))
+  (method void talk () (print "hi"))
 )
 
 (class main
   (method void main ()
-    (let ((my_generic_class@duck x null)
-          (my_generic_class@person y null))
-      # create a my_generic_class object that works with ducks
-      (set x (new my_generic_class@duck))
-      # create a my_generic_class object that works with persons
-      (set y (new my_generic_class@person))
-      (call x do_your_thing (new duck))
-      (call y do_your_thing (new person))
+    (let ((foo@int x null))
+       (if (== x null) (print "null"))
+       (if (== null x) (print "null"))
     )
   )
 )
