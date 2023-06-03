@@ -222,3 +222,158 @@ woot!'''.splitlines())
         output = self.deaf_interpreter.get_output()
 
         self.assertEqual(output, '''World!'''.splitlines())
+
+    def test_return_exception(self):
+        brewin = string_to_program('''
+            (class main
+  (method string regurgitate ()
+    (try
+      (throw "up")
+      (return exception)
+    )
+  )
+  (method void main ()
+    (print (call me regurgitate))
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''up'''.splitlines())
+
+    def test_nested(self):
+        brewin = string_to_program('''
+            (class main
+  (method string regurgitate ()
+    (try
+      (try
+        (throw "u")
+        (throw (+ exception "p"))
+      )
+      (try
+        (throw exception)
+        (return exception)
+      )
+    )
+  )
+  (method void main ()
+    (print (call me regurgitate))
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''up'''.splitlines())
+
+    def test_return(self):
+        brewin = string_to_program('''
+            (class main
+  (method string regurgitate ()
+    (try
+      (return "swallow")
+      (return exception)
+    )
+  )
+  (method void main ()
+    (print (call me regurgitate))
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''swallow'''.splitlines())
+
+    def test_expression(self):
+        brewin = string_to_program('''
+            (class main
+  (method string regurgitate ()
+    (try
+      (throw (+ "u" "p"))
+      (return exception)
+    )
+  )
+  (method void main ()
+    (print (call me regurgitate))
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''up'''.splitlines())
+
+    def test_methods(self):
+        brewin = string_to_program('''
+            (class main
+  (method string stomach ()
+    (return "barf")
+  )
+  (method string toilet ((string contents))
+    (begin
+    (print (+ "flushing " contents))
+    (return "all good")
+    )
+  )
+  (method string regurgitate ()
+    (try
+      (throw (call me stomach))
+      (return (call me toilet exception))
+    )
+  )
+  (method void main ()
+    (print (call me regurgitate))
+  )
+)
+        ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''flushing barf
+all good'''.splitlines())
+
+    def test_in_and_out(self):
+        brewin = string_to_program('''
+            (class toilet
+  (method string dump ((string contents) (bool flush))
+    (if flush
+      (return "all good")
+      (throw contents)
+    )
+  )
+)
+
+(class main
+  (field toilet throne)
+  (method string regurgitate ()
+    (try
+      (throw (call throne dump "barf" false))
+      (return (call throne dump exception true))
+    )
+  )
+  (method void main ()
+    (begin
+    (set throne (new toilet))
+    (print (call me regurgitate))
+    )
+  )
+)
+      ''')
+
+        self.deaf_interpreter.reset()
+        self.deaf_interpreter.run(brewin)
+        output = self.deaf_interpreter.get_output()
+
+        self.assertEqual(output, '''all good'''.splitlines())

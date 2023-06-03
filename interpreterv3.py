@@ -1295,18 +1295,63 @@ Interpreter = Barista
 def main():
     interpreter = Interpreter(trace_output=True)
     script = '''
-(tclass foo (field_type)
-  (method foo@field_type get_me () (return me))
-  (method void talk () (print "hi"))
-)
-
 (class main
-  (method void main ()
-    (let ((foo@int x null))
-       (if (== x null) (print "null"))
-       (if (== null x) (print "null"))
+    (method void foo ()
+        (while true
+            (begin
+                (print "argh")
+                #(throw "blah")
+                (throw (call me throws))
+                (print "yay!")
+            )
+        )
     )
-  )
+    (method void throws ()
+      (throw "boop")
+    )
+    (method void bar ()
+        (begin
+            (print "hello")
+            (call me foo)
+            (print "bye")
+        )
+    )
+    (method void main ()
+        (begin
+            (try
+                (begin
+                    (let ((bool x false) (int y 5))
+                        (while (> y 0)
+                            (begin
+                                (set y (- y 1))
+                                (if (== y 0)
+                                    #(set x (call me bar))
+                                    (while (call me bar)
+                                      (print "The exception says: ")
+                                    )
+                                )
+                            )
+                        )
+
+                    )
+                )
+
+                (begin
+                  (let ((int x 5))
+                    (while (> x 0)
+                      (begin
+                        (print exception)
+                        (print x)
+                        (set x (- x 1))
+                      )
+                    )
+                  )
+                )
+                 # the catch statement
+            )
+            (print "woot!")
+        )
+    )
 )
     '''
     try:
