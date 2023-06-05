@@ -284,7 +284,7 @@ class Recipe:
                                        f"Class {btype} not defined above",
                                        btype.line_num)
                 case [InterpreterBase.METHOD_DEF, btype, name, params,
-                      statement, *_] if isSWLN(btype) and isSWLN(name):
+                      statement] if isSWLN(btype) and isSWLN(name):
                     self.add_method(name, btype, params, statement)
                 case _:
                     self.error(ErrorType.SYNTAX_ERROR,
